@@ -1,42 +1,31 @@
-<!--
-Heads up: this is a template, not a collaborative product. Most
-changes belong in your fork. See CONTRIBUTING.md for which kinds of
-upstream PRs tend to land (security, correctness, docs) vs. which
-belong in a fork (new features, stack swaps, opinionated refactors).
-If you haven't opened an issue yet for a non-trivial change, consider
-doing that first to check alignment.
+# Pull Request Template
 
-Keep this short and specific. The commit message is where the "why"
-lives; this is where the reviewer gets the "what" and "how to try it".
--->
+## Description
 
-## Summary
+Please include a summary of the change and issue(s) fixed. Also, mention relevant motivation, context, and any dependencies that this change requires.
+Fixes # (issue)
 
-<!-- One or two sentences. What does this PR do? -->
+## Type of change
 
-## What changed
+Please delete options that are not relevant.
 
-<!-- Bullet list of the actual changes. Link file paths when useful. -->
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality not to work as expected)
+- [ ] This change requires a documentation update
 
-## Test plan
+## How Has This Been Tested?
 
-<!--
-How did you verify this works? How should the reviewer verify it?
-Tick the boxes as you go.
--->
+Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration.
 
-- [ ] `npm run typecheck` clean.
-- [ ] `npm run lint` — no new errors beyond the pre-existing backlog.
-- [ ] `npm run build` succeeds.
-- [ ] Feature / fix manually exercised in the browser (or the reason it can't be).
 
-## Related
+## Checklist:
 
-<!-- Link the issue this closes, or "Part of #N" for multi-PR work. -->
-
-<!--
-Heads up:
-- Security issues: do not disclose here; see .github/SECURITY.md.
-- New deps: please justify briefly in the commit message or PR body.
-- Runtime behaviour changes affecting forkers: update docs/*.
--->
+- [ ] My code follows the style guidelines of this project
+- [ ] I have performed a self-review of my code
+- [ ] I have commented on my code, particularly in hard-to-understand areas
+- [ ] I have made corresponding changes to the documentation
+- [ ] My changes generate no new warnings
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally with my changes
+- [ ] Any dependent changes have been merged and published in downstream modules

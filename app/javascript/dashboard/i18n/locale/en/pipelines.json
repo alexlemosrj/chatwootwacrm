@@ -1,0 +1,62 @@
+{
+  "PIPELINES": {
+    "TITLE": "Pipelines",
+    "NEW_PIPELINE": "Add pipeline",
+    "PIPELINE_NAME": "Pipeline name",
+    "SELECT_PIPELINE": "Select pipeline",
+    "ADD_DEAL": "Add deal",
+    "EDIT_DEAL": "Edit deal",
+    "SETTINGS": "Pipeline settings",
+    "EMPTY": "No deals in this stage",
+    "DROP_HERE": "Drop a deal here",
+    "CREATED": "Pipeline created",
+    "ANALYTICS": {
+      "COUNT": "Open deals",
+      "VALUE": "Pipeline value",
+      "AVG": "Average deal",
+      "WEIGHTED": "Weighted value",
+      "WON": "Won this month",
+      "LOST": "Lost this month"
+    },
+    "FORM": {
+      "TITLE": "Title",
+      "VALUE": "Value",
+      "CURRENCY": "Currency",
+      "STAGE": "Stage",
+      "CONTACT": "Contact ID",
+      "ASSIGNEE": "Assignee",
+      "CLOSE_DATE": "Expected close",
+      "NOTES": "Notes",
+      "STATUS": "Status",
+      "SAVE": "Save",
+      "DELETE": "Delete deal",
+      "CANCEL": "Cancel"
+    },
+    "STATUS": {
+      "OPEN": "Open",
+      "WON": "Won",
+      "LOST": "Lost"
+    },
+    "SETTINGS_PANEL": {
+      "RENAME": "Rename pipeline",
+      "STAGES": "Stages",
+      "ADD_STAGE": "Add stage",
+      "NEW_STAGE_NAME": "New stage",
+      "DELETE_STAGE": "Delete stage",
+      "DELETE_PIPELINE": "Delete pipeline",
+      "SAVE_STAGE": "Save"
+    },
+    "ERRORS": {
+      "CREATE_PIPELINE": "Could not create the pipeline",
+      "SAVE_DEAL": "Could not save the deal",
+      "MOVE_DEAL": "Could not move the deal",
+      "DELETE_STAGE": "Could not delete the stage"
+    },
+    "CONTACT_SIDEBAR": {
+      "TITLE": "Deals",
+      "CREATE": "Create deal",
+      "EMPTY": "No deals for this contact",
+      "OPEN_BOARD": "Open pipelines"
+    }
+  }
+}
