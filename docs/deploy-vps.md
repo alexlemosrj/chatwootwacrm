@@ -1,89 +1,221 @@
-# Deploy Chatwoot + Kanban (Funis) na VPS — guia para o Alex
+# Deploy Chatwoot + Kanban (Funis) — VPS nova (do zero)
 
-Branch a usar: **`wa-vinicius`**
+Guia para o **Alex** instalar em uma **VPS limpa**. Branch: **`wa-vinicius`**.
 
-Stack:
+## Arquitetura
 
-- **VPS:** Docker Compose com `rails` (web) + `sidekiq` (worker) — arquivo [`docker-compose.vps.yaml`](../docker-compose.vps.yaml)
-- **Postgres:** Supabase (cloud)
-- **Redis:** Redis Cloud **ou** Redis self-hosted (ver seção no final)
+| Peça | Onde roda |
+|------|-----------|
+| App web (`rails`) + worker (`sidekiq`) | VPS (Docker Compose) — [`docker-compose.vps.yaml`](../docker-compose.vps.yaml) |
+| Postgres | Supabase (cloud) |
+| Redis | Redis Cloud **ou** Redis em outra máquina (ver opcional no final) |
+
+A VPS **não** sobe Postgres nem Redis localmente neste compose.
 
 ---
 
-## A) Atualizar uma VPS que já está rodando Chatwoot
+## Pré-requisitos (antes de clonar)
 
-Use este fluxo se a instalação já existe e você só precisa puxar o Kanban / Funis desta branch.
+1. **VPS** com Ubuntu (ou similar), IP público, acesso SSH root/sudo.
+2. **Domínio** apontando para o IP da VPS (ex.: `crm.seudominio.com`) — necessário para HTTPS e WhatsApp.
+3. **Supabase** com projeto Postgres pronto. Use a connection string do **Session pooler** (não a direta, se o IP da VPS mudar com frequência). Anote:
+   - host, porta, database, user, password
+4. **Redis** (Cloud ou self-hosted) com host, porta e senha. Libere o **IP público da VPS** no allowlist do Redis Cloud **antes** do `db:chatwoot_prepare`.
+5. Na VPS, instale Docker + Compose plugin:
+   ```bash
+   # Exemplo Ubuntu
+   sudo apt update && sudo apt install -y ca-certificates curl git
+   # Instale Docker Engine + Compose seguindo a doc oficial:
+   # https://docs.docker.com/engine/install/ubuntu/
+   docker --version
+   docker compose version
+   ```
+
+---
+
+## 1) Clone do repositório
 
 ```bash
-# 1) Entre na pasta do projeto na VPS
-cd /caminho/do/chatwootwacrm   # ajuste o path real
-
-# 2) Baixe o código e mude para a branch
-git fetch origin
+cd /opt   # ou outro path permanente
+sudo mkdir -p /opt && cd /opt
+git clone <URL_DO_REPO> chatwootwacrm
+cd chatwootwacrm
 git checkout wa-vinicius
-git pull origin wa-vinicius
-
-# 3) Rebuild e recreate dos containers (aplica JS/Vue + gems)
-docker compose -f docker-compose.vps.yaml up -d --build --force-recreate
-
-# 4) Rode migrações (cria tabelas pipelines / pipeline_stages / deals)
-docker compose -f docker-compose.vps.yaml exec rails bundle exec rails db:migrate
-
-# 5) Confirme que Redis está saudável (obrigatório — ver seção "Redis e menus sumindo")
-docker compose -f docker-compose.vps.yaml exec rails bundle exec rails runner 'Redis.new(url: ENV["REDIS_URL"], password: ENV["REDIS_PASSWORD"].presence).ping'
-# Esperado: "PONG"
 ```
 
-### Checklist pós-update
+Confirme a branch:
 
-1. Abra o `FRONTEND_URL` e faça login.
+```bash
+git branch --show-current   # deve ser: wa-vinicius
+```
+
+---
+
+## 2) Arquivo `.env`
+
+```bash
+cp .env.example .env
+nano .env   # ou vim
+```
+
+Preencha **no mínimo** (produção):
+
+```bash
+# Segurança
+SECRET_KEY_BASE=   # gerar: openssl rand -hex 64
+RAILS_ENV=production
+
+# URL pública (com HTTPS depois do proxy)
+FRONTEND_URL=https://crm.seudominio.com
+FORCE_SSL=true
+
+# Postgres (Supabase Session pooler)
+POSTGRES_HOST=aws-0-xxx.pooler.supabase.com
+POSTGRES_PORT=5432
+POSTGRES_DATABASE=postgres          # ou o nome do DB do projeto
+POSTGRES_USERNAME=postgres.xxxxx
+POSTGRES_PASSWORD=sua_senha
+
+# Redis
+REDIS_URL=redis://SEU_HOST_REDIS:6379
+REDIS_PASSWORD=sua_senha_redis
+
+# Signup: deixe false em produção se não quiser auto-cadastro aberto
+ENABLE_ACCOUNT_SIGNUP=false
+```
+
+Gere a secret:
+
+```bash
+openssl rand -hex 64
+# cole o resultado em SECRET_KEY_BASE=
+```
+
+**Não** commite o `.env`.
+
+---
+
+## 3) Firewall e allowlists
+
+- Na VPS: liberar **22** (SSH), **80** e **443** (HTTP/HTTPS). A porta **3000** pode ficar só em `127.0.0.1` se o Nginx/Caddy estiver na mesma máquina.
+- No **Redis Cloud**: allowlist com o IP público da VPS.
+- No **Supabase**: se houver network restrictions, liberar o mesmo IP.
+
+Teste Redis **antes** de preparar o banco (de uma máquina com acesso, ou depois do container subir — ver passo 5).
+
+---
+
+## 4) Build e start dos containers
+
+```bash
+cd /opt/chatwootwacrm
+docker compose -f docker-compose.vps.yaml up -d --build
+docker compose -f docker-compose.vps.yaml ps
+```
+
+Espere `rails` e `sidekiq` ficarem `Up`. Acompanhe o build se necessário:
+
+```bash
+docker compose -f docker-compose.vps.yaml logs -f rails
+```
+
+---
+
+## 5) Validar Redis (obrigatório antes do prepare)
+
+```bash
+docker compose -f docker-compose.vps.yaml exec rails \
+  bundle exec rails runner 'puts Redis.new(url: ENV["REDIS_URL"], password: ENV["REDIS_PASSWORD"].presence).ping'
+```
+
+Esperado: `PONG`.
+
+Se falhar (`WRONGPASS`, timeout, connection refused): **não** rode o passo 6. Corrija senha/URL/allowlist e teste de novo.
+
+---
+
+## 6) Preparar banco (migrate + seeds de config)
+
+Com Redis em `PONG`:
+
+```bash
+docker compose -f docker-compose.vps.yaml exec rails \
+  bundle exec rails db:chatwoot_prepare
+```
+
+Isso cria as tabelas (incluindo **pipelines / stages / deals** do Kanban) e carrega configs de feature flags.
+
+### Por que Redis precisa estar ok aqui
+
+`db:chatwoot_prepare` (e `db:migrate`) roda `ConfigLoader`, que grava `ACCOUNT_LEVEL_FEATURE_DEFAULTS`. Se o Redis falhar no meio, as contas nascem **sem feature flags** e a sidebar esconde Contatos, Relatórios, Campanhas, Central de Ajuda e **Configurações → Caixas de entrada** (WhatsApp).
+
+Se isso acontecer depois, use a seção **Recovery de menus** no final.
+
+---
+
+## 7) Proxy HTTPS (Nginx ou Caddy)
+
+Aponte o domínio para `127.0.0.1:3000` (container `rails`).
+
+Exemplo mínimo **Caddy** (`/etc/caddy/Caddyfile`):
+
+```
+crm.seudominio.com {
+  reverse_proxy 127.0.0.1:3000
+}
+```
+
+Exemplo mínimo **Nginx** (depois de emitir certificado com Certbot):
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name crm.seudominio.com;
+
+  # ssl_certificate / ssl_certificate_key via Certbot
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+  }
+}
+```
+
+Confirme que `FRONTEND_URL` no `.env` é exatamente a URL HTTPS pública. Se mudar o `.env`:
+
+```bash
+docker compose -f docker-compose.vps.yaml up -d --force-recreate
+```
+
+---
+
+## 8) Primeiro acesso e configuração
+
+1. Abra `https://crm.seudominio.com` e crie a conta admin (ou use o fluxo de signup conforme `ENABLE_ACCOUNT_SIGNUP`).
 2. Na sidebar devem aparecer: **Caixa de Entrada, Conversas, Funis, Contatos, Relatórios, Campanhas, Central de Ajuda, Configurações**.
-3. Em **Configurações → Caixas de entrada** deve ser possível conectar WhatsApp.
-4. Abra **Funis** (Pipelines): na primeira visita o sistema cria um funil padrão (*Sales Pipeline*) com 5 etapas.
-5. Idioma pt-BR: em Configurações de perfil/conta, confirme o idioma; labels do Kanban devem aparecer em português (*Funis*, *Adicionar funil*, *Adicionar negócio*, etc.).
-
-Se **Contatos / Relatórios / Campanhas / Caixas de entrada** sumiram da sidebar, pule para a seção **Redis e menus sumindo** abaixo e rode o recovery.
+3. **Configurações → Caixas de entrada** → conectar WhatsApp.
+4. Abra **Funis**: na primeira visita a conta recebe um funil padrão (*Sales Pipeline*) com 5 etapas.
+5. Em perfil/conta, idioma **Português (Brasil)** — labels do Kanban em pt-BR (*Funis*, *Adicionar funil*, *Adicionar negócio*, etc.).
 
 ---
 
-## B) Primeira instalação (VPS do zero)
+## Funis (Kanban)
 
-1. Clone e checkout:
-   ```bash
-   git clone <URL_DO_REPO> chatwootwacrm
-   cd chatwootwacrm
-   git checkout wa-vinicius
-   ```
-
-2. Env:
-   ```bash
-   cp .env.example .env
-   ```
-   Preencha no mínimo:
-   - `SECRET_KEY_BASE` → `openssl rand -hex 64`
-   - `FRONTEND_URL` → URL pública com HTTPS (ex.: `https://crm.seudominio.com`)
-   - `POSTGRES_HOST` / `POSTGRES_PORT` / `POSTGRES_DATABASE` / `POSTGRES_USERNAME` / `POSTGRES_PASSWORD` (Supabase **Session pooler**)
-   - `REDIS_URL` + `REDIS_PASSWORD`
-
-3. Liberar o IP público da VPS no allowlist do Redis Cloud e, se houver, nas network restrictions do Supabase.
-
-4. Subir:
-   ```bash
-   docker compose -f docker-compose.vps.yaml up -d --build
-   docker compose -f docker-compose.vps.yaml exec rails bundle exec rails db:chatwoot_prepare
-   ```
-
-   **Crítico:** `db:chatwoot_prepare` só pode rodar com **Redis acessível**. Esse rake (e o `db:migrate`) chama `ConfigLoader`, que grava `ACCOUNT_LEVEL_FEATURE_DEFAULTS` em `installation_configs`. Se o Redis falhar (ex.: `WRONGPASS`), as contas nascem **sem feature flags** e a sidebar esconde Contatos, Relatórios, Campanhas, Central de Ajuda e **Configurações → Caixas de entrada** (WhatsApp).
-
-5. Coloque Nginx ou Caddy na frente com TLS apontando para `127.0.0.1:3000` (ou exponha 3000 com cuidado).
-
-6. Abra `FRONTEND_URL`, crie o admin, configure caixas de entrada (WhatsApp) e teste **Funis**.
+- Menu: **Funis**.
+- Funil padrão: New Lead → Qualified → Proposal Sent → Negotiation → Won.
+- Dá para criar funis, negócios, arrastar entre etapas e editar etapas nas configurações do funil.
+- Traduções pt-BR já vêm na branch; não depende do Crowdin para o básico.
 
 ---
 
-## Redis e menus sumindo (recovery)
+## Recovery de menus (se sumirem Contatos / WhatsApp / etc.)
 
-Depois que o Redis estiver saudável (`PONG`), rode:
+Só depois de Redis responder `PONG`:
 
 ```bash
 docker compose -f docker-compose.vps.yaml exec rails bundle exec rails runner '
@@ -95,65 +227,50 @@ docker compose -f docker-compose.vps.yaml exec rails bundle exec rails runner '
 '
 ```
 
-Recarregue o browser (hard refresh). Os menus devem voltar.
+Hard refresh no browser.
 
 ---
 
-## Pipelines / Kanban (Funis)
+## Opcional: Redis self-hosted em outra VPS
 
-- Menu na sidebar: **Funis**.
-- Primeira visita na conta cria o funil padrão com etapas: New Lead → Qualified → Proposal Sent → Negotiation → Won.
-- É possível adicionar funis, negócios, arrastar entre etapas e abrir configurações do funil (renomear / etapas).
-- Traduções pt-BR estão no frontend; não depende do Crowdin para o básico do Kanban.
+Dados do Redis são efêmeros (filas/cache).
 
----
+```bash
+# Na VPS do Redis
+docker run -d --name chatwoot-redis --restart unless-stopped \
+  -p 6379:6379 \
+  redis:7-alpine redis-server --requirepass 'SENHA_FORTE'
+```
 
-## Trocar Redis Cloud → Redis em outra VPS
+Firewall: porta **6379** só do IP da VPS do Chatwoot.
 
-Dados do Redis são efêmeros (filas/cache). Não precisa de dump.
+No `.env` do Chatwoot:
 
-1. Na VPS do Redis:
-   ```bash
-   docker run -d --name chatwoot-redis --restart unless-stopped \
-     -p 6379:6379 \
-     redis:7-alpine redis-server --requirepass 'SENHA_FORTE'
-   ```
-2. Firewall: liberar 6379 **somente** do IP da VPS do Chatwoot.
-3. No `.env` do Chatwoot:
-   ```bash
-   REDIS_URL=redis://IP_OU_HOST_DO_REDIS:6379
-   REDIS_PASSWORD=SENHA_FORTE
-   ```
-4. Recreate:
-   ```bash
-   docker compose -f docker-compose.vps.yaml up -d --force-recreate
-   ```
-5. Smoke-test: login, mensagens, logs do Sidekiq. Se menus sumirem, rode o recovery da seção acima.
-6. Desative a instância antiga no Redis Cloud.
+```bash
+REDIS_URL=redis://IP_DO_REDIS:6379
+REDIS_PASSWORD=SENHA_FORTE
+```
+
+```bash
+docker compose -f docker-compose.vps.yaml up -d --force-recreate
+# teste PONG de novo; se menus falharem, rode o Recovery
+```
 
 ---
 
 ## Comandos úteis
 
 ```bash
-# Logs
 docker compose -f docker-compose.vps.yaml logs -f rails
 docker compose -f docker-compose.vps.yaml logs -f sidekiq
-
-# Status
 docker compose -f docker-compose.vps.yaml ps
-
-# Console Rails
 docker compose -f docker-compose.vps.yaml exec rails bundle exec rails c
-
-# Ping Redis
-docker compose -f docker-compose.vps.yaml exec rails bundle exec rails runner 'puts Redis.new(url: ENV["REDIS_URL"], password: ENV["REDIS_PASSWORD"].presence).ping'
 ```
 
 ---
 
-## O que NÃO fazer
+## Não faça
 
-- Não rode `db:chatwoot_prepare` / `db:migrate` com Redis com senha errada ou IP bloqueado.
-- Não commite `.env` (segredos).
-- Não force-push em `main`/`master` sem alinhamento com o time.
+- Não rode `db:chatwoot_prepare` com Redis com senha errada ou IP bloqueado.
+- Não deixe `FRONTEND_URL` em `http://0.0.0.0:3000` em produção.
+- Não commite `.env`.
