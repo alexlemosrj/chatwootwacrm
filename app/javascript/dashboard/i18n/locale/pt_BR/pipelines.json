@@ -1,0 +1,62 @@
+{
+  "PIPELINES": {
+    "TITLE": "Funis",
+    "NEW_PIPELINE": "Adicionar funil",
+    "PIPELINE_NAME": "Nome do funil",
+    "SELECT_PIPELINE": "Selecionar funil",
+    "ADD_DEAL": "Adicionar negócio",
+    "EDIT_DEAL": "Editar negócio",
+    "SETTINGS": "Configurações do funil",
+    "EMPTY": "Nenhum negócio nesta etapa",
+    "DROP_HERE": "Solte um negócio aqui",
+    "CREATED": "Funil criado",
+    "ANALYTICS": {
+      "COUNT": "Total de negócios",
+      "VALUE": "Valor do funil",
+      "AVG": "Ticket médio",
+      "WEIGHTED": "Valor ponderado",
+      "WON": "Ganhos no mês",
+      "LOST": "Perdidos no mês"
+    },
+    "FORM": {
+      "TITLE": "Título",
+      "VALUE": "Valor",
+      "CURRENCY": "Moeda",
+      "STAGE": "Etapa",
+      "CONTACT": "ID do contato",
+      "ASSIGNEE": "Responsável",
+      "CLOSE_DATE": "Previsão de fechamento",
+      "NOTES": "Observações",
+      "STATUS": "Status",
+      "SAVE": "Salvar",
+      "DELETE": "Excluir negócio",
+      "CANCEL": "Cancelar"
+    },
+    "STATUS": {
+      "OPEN": "Aberto",
+      "WON": "Ganho",
+      "LOST": "Perdido"
+    },
+    "SETTINGS_PANEL": {
+      "RENAME": "Renomear funil",
+      "STAGES": "Etapas",
+      "ADD_STAGE": "Adicionar etapa",
+      "NEW_STAGE_NAME": "Nova etapa",
+      "DELETE_STAGE": "Excluir etapa",
+      "DELETE_PIPELINE": "Excluir funil",
+      "SAVE_STAGE": "Salvar"
+    },
+    "ERRORS": {
+      "CREATE_PIPELINE": "Não foi possível criar o funil",
+      "SAVE_DEAL": "Não foi possível salvar o negócio",
+      "MOVE_DEAL": "Não foi possível mover o negócio",
+      "DELETE_STAGE": "Não foi possível excluir a etapa"
+    },
+    "CONTACT_SIDEBAR": {
+      "TITLE": "Negócios",
+      "CREATE": "Criar negócio",
+      "EMPTY": "Nenhum negócio para este contato",
+      "OPEN_BOARD": "Abrir funis"
+    }
+  }
+}

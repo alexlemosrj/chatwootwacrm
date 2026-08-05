@@ -33,6 +33,5 @@ class CreatePipelinesStagesAndDeals < ActiveRecord::Migration[7.1]
     end
     add_index :deals, [:account_id, :pipeline_id]
     add_index :deals, [:account_id, :status]
-    add_index :deals, :pipeline_stage_id
   end
 end

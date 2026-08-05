@@ -10,12 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_04_000003) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
+  create_schema "auth"
+  create_schema "extensions"
+  create_schema "graphql"
+  create_schema "graphql_public"
+  create_schema "pgbouncer"
+  create_schema "realtime"
+  create_schema "storage"
+  create_schema "vault"
+
   # These extensions should be enabled to support this database
+  enable_extension "pg_graphql"
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
+  enable_extension "supabase_vault"
+  enable_extension "uuid-ossp"
   enable_extension "vector"
 
   create_table "access_tokens", force: :cascade do |t|
@@ -471,8 +483,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_04_000003) do
     t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["account_id"], name: "index_captain_faq_suggestions_on_account_id"
     t.index ["account_id", "assistant_id", "status", "language"], name: "idx_cap_faq_suggestions_on_account_assistant_status_language"
+    t.index ["account_id"], name: "index_captain_faq_suggestions_on_account_id"
     t.index ["assistant_id"], name: "index_captain_faq_suggestions_on_assistant_id"
     t.index ["embedding"], name: "vector_idx_captain_faq_suggestions_embedding", opclass: :vector_cosine_ops, using: :ivfflat
   end
@@ -712,8 +724,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_04_000003) do
     t.jsonb "phone_number_health", default: {}, null: false
     t.datetime "phone_number_health_checked_at"
     t.string "phone_number_health_error", limit: 500
-    t.index ["phone_number_health_checked_at"], name: "index_channel_whatsapp_on_phone_number_health_checked_at"
     t.index ["phone_number"], name: "index_channel_whatsapp_on_phone_number", unique: true
+    t.index ["phone_number_health_checked_at"], name: "index_channel_whatsapp_on_phone_number_health_checked_at"
   end
 
   create_table "companies", force: :cascade do |t|
@@ -1042,6 +1054,31 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_04_000003) do
     t.index ["source_provider"], name: "index_data_imports_on_source_provider"
   end
 
+  create_table "deals", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "pipeline_id", null: false
+    t.bigint "pipeline_stage_id", null: false
+    t.bigint "contact_id"
+    t.bigint "conversation_id"
+    t.bigint "assignee_id"
+    t.string "title", null: false
+    t.decimal "value", precision: 12, scale: 2, default: "0.0", null: false
+    t.string "currency", default: "USD", null: false
+    t.text "notes"
+    t.date "expected_close_date"
+    t.string "status", default: "open", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "pipeline_id"], name: "index_deals_on_account_id_and_pipeline_id"
+    t.index ["account_id", "status"], name: "index_deals_on_account_id_and_status"
+    t.index ["account_id"], name: "index_deals_on_account_id"
+    t.index ["assignee_id"], name: "index_deals_on_assignee_id"
+    t.index ["contact_id"], name: "index_deals_on_contact_id"
+    t.index ["conversation_id"], name: "index_deals_on_conversation_id"
+    t.index ["pipeline_id"], name: "index_deals_on_pipeline_id"
+    t.index ["pipeline_stage_id"], name: "index_deals_on_pipeline_stage_id"
+  end
+
   create_table "email_templates", force: :cascade do |t|
     t.string "name", null: false
     t.text "body", null: false
@@ -1051,10 +1088,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_04_000003) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "inbox_id"
-    t.index ["account_id", "name", "template_type", "locale"], name: "index_email_templates_on_account_scope", unique: true, where: "(account_id IS NOT NULL) AND (inbox_id IS NULL)"
+    t.index ["account_id", "name", "template_type", "locale"], name: "index_email_templates_on_account_scope", unique: true, where: "((account_id IS NOT NULL) AND (inbox_id IS NULL))"
     t.index ["inbox_id", "name", "template_type", "locale"], name: "index_email_templates_on_inbox_scope", unique: true, where: "(inbox_id IS NOT NULL)"
     t.index ["inbox_id"], name: "index_email_templates_on_inbox_id"
-    t.index ["name", "template_type", "locale"], name: "index_email_templates_on_installation_scope", unique: true, where: "(account_id IS NULL) AND (inbox_id IS NULL)"
+    t.index ["name", "template_type", "locale"], name: "index_email_templates_on_installation_scope", unique: true, where: "((account_id IS NULL) AND (inbox_id IS NULL))"
   end
 
   create_table "folders", force: :cascade do |t|
@@ -1287,6 +1324,26 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_04_000003) do
     t.index ["secondary_actor_type", "secondary_actor_id"], name: "uniq_secondary_actor_per_account_notifications"
     t.index ["user_id", "account_id", "snoozed_until", "read_at"], name: "idx_notifications_performance"
     t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
+  create_table "pipeline_stages", force: :cascade do |t|
+    t.bigint "pipeline_id", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.string "color", default: "#3b82f6", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["pipeline_id", "position"], name: "index_pipeline_stages_on_pipeline_id_and_position"
+    t.index ["pipeline_id"], name: "index_pipeline_stages_on_pipeline_id"
+  end
+
+  create_table "pipelines", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_pipelines_on_account_id_and_name"
+    t.index ["account_id"], name: "index_pipelines_on_account_id"
   end
 
   create_table "platform_app_permissibles", force: :cascade do |t|
@@ -1559,7 +1616,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_04_000003) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "deals", "accounts"
+  add_foreign_key "deals", "contacts"
+  add_foreign_key "deals", "conversations"
+  add_foreign_key "deals", "pipeline_stages"
+  add_foreign_key "deals", "pipelines"
+  add_foreign_key "deals", "users", column: "assignee_id"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "pipeline_stages", "pipelines"
+  add_foreign_key "pipelines", "accounts"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
