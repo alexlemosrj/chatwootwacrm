@@ -1,76 +1,78 @@
-name: Bug report
-description: Something in the template isn't working the way the docs say it should.
-title: "[bug] "
-labels: ["bug", "triage"]
+name: 🐞 Bug report
+description: Create a report to help us improve
+labels: 'Bug'
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for reporting! The more specific you can be, the faster we
-        can land a fix.
-
-        **Not a bug in the code?** If this is a security issue, close this
-        form and follow [SECURITY.md](https://github.com/ArnasDon/wacrm/blob/main/.github/SECURITY.md)
-        instead.
-
   - type: textarea
-    id: summary
     attributes:
-      label: What happened?
-      description: One or two sentences describing the symptom.
-      placeholder: Clicking a conversation leaves the thread stuck on "No messages yet".
+      label: Describe the bug
+      description: A concise description of what you expected to happen along with screenshots if applicable.
     validations:
       required: true
-
   - type: textarea
-    id: steps
     attributes:
-      label: Steps to reproduce
-      description: The minimum steps we need to trigger the bug on our side.
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
       placeholder: |
-        1. Sign in, go to /inbox.
-        2. Click any conversation that has past messages.
-        3. Thread pane shows "No messages yet" until hard refresh.
+        1. In this environment...
+        2. With this config...
+        3. Run '...'
+        4. See error...
     validations:
       required: true
-
   - type: textarea
-    id: expected
     attributes:
-      label: What did you expect?
-      placeholder: Messages load the first time, every time.
-    validations:
-      required: true
-
-  - type: input
-    id: version
-    attributes:
-      label: Commit / version
-      description: |
-        The commit SHA or release you're on. `git rev-parse --short HEAD`
-        in the fork works.
-      placeholder: "e.g. d6a4677 or v0.2.0"
-    validations:
-      required: false
-
+      label: Expected behavior
+      description: A concise description of what you expected to happen.
   - type: dropdown
-    id: runtime
+    id: environment
     attributes:
-      label: Where is it running?
+      label: Environment
+      description: Describe whether you are using Chatwoot Cloud (app.chatwoot.com) or a self-hosted installation of Chatwoot. If you are using a self-hosted installation of Chatwoot, describe the type of deployment (Docker/Linux VM installation/Heroku/Kubernetes/Other).
       options:
-        - Local dev (npm run dev)
-        - Hostinger Managed Node.js
-        - Hostinger VPS
-        - Vercel
-        - Other Node host
+        - app.chatwoot.com
+        - Linux VM
+        - Docker
+        - Kubernetes
+        - Heroku
+        - Other [please specify in the description]
     validations:
-      required: false
-
-  - type: textarea
-    id: logs
+      required: true
+  - type: dropdown
+    id: provider
     attributes:
-      label: Logs / screenshots
-      description: Server logs, browser console errors, network tab — anything that looks suspicious. Scrub tokens before pasting.
-      render: text
-    validations:
-      required: false
+      label: Cloud Provider
+      description:
+      options:
+        - AWS
+        - GCP
+        - Azure
+        - DigitalOcean
+        - Other [please specify in the description]
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Describe the platform you are using
+      options:
+        - Browser
+        - Mobile
+  - type: input
+    attributes:
+      label: Operating system
+      description: The operating system and the version you are using.
+  - type: input
+    attributes:
+      label: Browser and version
+      description: The name of the browser and version you are using.
+  - type: textarea
+    attributes:
+      label: Docker (if applicable)
+      description: |
+        Please share the output of the following. 
+        - `docker version`
+        - `docker info`
+        - `docker-compose version`
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
