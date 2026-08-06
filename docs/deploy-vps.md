@@ -75,6 +75,9 @@ POSTGRES_PORT=5432
 POSTGRES_DATABASE=postgres          # ou o nome do DB do projeto
 POSTGRES_USERNAME=postgres.xxxxx
 POSTGRES_PASSWORD=sua_senha
+# Se aparecer EMAXCONNSESSION (pool_size: 15), use Transaction pooler:
+# POSTGRES_PORT=6543
+# POSTGRES_PREPARED_STATEMENTS=false
 
 # Redis
 REDIS_URL=redis://SEU_HOST_REDIS:6379
@@ -201,6 +204,64 @@ docker compose -f docker-compose.vps.yaml up -d --force-recreate
 3. **Configurações → Caixas de entrada** → conectar WhatsApp.
 4. Abra **Funis**: na primeira visita a conta recebe um funil padrão (*Sales Pipeline*) com 5 etapas.
 5. Em perfil/conta, idioma **Português (Brasil)** — labels do Kanban em pt-BR (*Funis*, *Adicionar funil*, *Adicionar negócio*, etc.).
+
+---
+
+## 9) Super Admin — master cria clientes (multi-tenant SaaS)
+
+Modelo: **você (master)** provisiona cada cliente; **o cliente** entra no app, conecta WhatsApp e usa Funis/CRM sozinho.
+
+| Quem | Onde | Faz o quê |
+|------|------|-----------|
+| Master (`SuperAdmin`) | `/super_admin` | Cria Accounts, Users e vincula o cliente como administrator |
+| Cliente | `/app` | Login próprio, WhatsApp, Funis, conversas |
+
+URL do painel master:
+
+`https://SEU_DOMINIO/super_admin`
+
+No dashboard `/app`, usuários `SuperAdmin` também veem **Console de Super Admin** (ícone castelo) no menu do perfil — igual ao Chatwoot padrão. É preciso **logout/login** depois de promover alguém a SuperAdmin para o item aparecer.
+
+Login do Super Admin é **separado** do dashboard (Devise em `/super_admin`), mesmo e-mail/senha se o usuário for `type: SuperAdmin`.
+
+### Criar o primeiro Super Admin na VPS
+
+Depois do `db:chatwoot_prepare` e com Redis ok:
+
+```bash
+docker compose -f docker-compose.vps.yaml exec rails bundle exec rails runner '
+  email = "admin@seudominio.com"   # ajuste
+  password = "SenhaForteAqui!"     # ajuste
+  u = User.find_by(email: email)
+  if u
+    u.update!(type: "SuperAdmin", password: password)
+    u.confirm unless u.confirmed?
+  else
+    u = SuperAdmin.new(name: "Master", email: email, password: password)
+    u.skip_confirmation!
+    u.save!
+  end
+  puts "SuperAdmin ok: #{u.email} id=#{u.id}"
+'
+```
+
+### Fluxo para liberar um cliente novo (obrigatório completo)
+
+Criar só a Account **não basta**. Sem User + AccountUser administrator, ninguém entra na conta.
+
+1. Abrir `/super_admin` e entrar com o master.
+2. **Accounts** → New → nome da empresa do cliente (ex.: Pantoja).
+3. **Users** → New → nome, e-mail e senha do cliente (ex.: Thiago).
+4. Abrir a Account criada → **Account Users** → Add → selecionar o User → role **administrator**.
+5. Entregar ao cliente: URL do app (`FRONTEND_URL`), e-mail e senha.
+6. O cliente faz login em `/app` → **Configurações → Caixas de entrada** → WhatsApp → usa **Funis**.
+
+O master **não precisa** estar vinculado à Account do cliente para o SaaS funcionar. Só vincule o master como `AccountUser` se quiser abrir a conta do cliente no seletor de contas do `/app` para suporte.
+
+### Checklist rápido pós-criação
+
+- Cliente loga e vê menus (Contatos, Funis, Configurações → Caixas de entrada).
+- Se menus faltarem nessa Account, rode o **Recovery de menus** (seção abaixo) — features padrão por conta.
 
 ---
 
