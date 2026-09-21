@@ -328,6 +328,13 @@ Rails.application.routes.draw do
           end
           resources :labels, only: [:index, :show, :create, :update, :destroy]
 
+          resources :pipelines, only: [:index, :show, :create, :update, :destroy] do
+            resources :pipeline_stages, only: [:index, :create, :update, :destroy]
+          end
+          resources :deals, only: [:index, :show, :create, :update, :destroy]
+          resources :crm_activities, only: [:index, :show, :create, :update, :destroy]
+          resources :crm_events, only: [:index]
+
           resources :notifications, only: [:index, :update, :destroy] do
             collection do
               post :read_all
