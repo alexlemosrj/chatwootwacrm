@@ -9,20 +9,8 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
   end
 
   def down
-    drop_table :crm_events, if_exists: true
-    drop_table :crm_activities, if_exists: true
-
-    remove_column :deals, :custom_attributes if column_exists?(:deals, :custom_attributes)
-    remove_column :deals, :utm_data if column_exists?(:deals, :utm_data)
-    remove_column :deals, :campaign_source if column_exists?(:deals, :campaign_source)
-    remove_column :deals, :priority_stars if column_exists?(:deals, :priority_stars)
-    remove_column :deals, :probability if column_exists?(:deals, :probability)
-    remove_column :deals, :expected_revenue if column_exists?(:deals, :expected_revenue)
-
-    remove_column :pipeline_stages, :is_lost if column_exists?(:pipeline_stages, :is_lost)
-    remove_column :pipeline_stages, :is_won if column_exists?(:pipeline_stages, :is_won)
-    remove_column :pipeline_stages, :default_probability if column_exists?(:pipeline_stages, :default_probability)
-    remove_column :pipelines, :is_default if column_exists?(:pipelines, :is_default)
+    raise ActiveRecord::IrreversibleMigration,
+          'CRM Pro supports both fresh and legacy schemas; automatic rollback cannot safely infer table ownership'
   end
 
   private
