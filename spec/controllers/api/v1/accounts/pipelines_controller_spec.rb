@@ -48,22 +48,21 @@ RSpec.describe 'Pipelines API', type: :request do
   end
 
   describe 'PATCH /api/v1/accounts/:account_id/pipelines/:pipeline_id/pipeline_stages/reorder' do
-    it 'reorders only stages from the selected account pipeline' do
-      first, second = pipeline.pipeline_stages.order(:position).first(2)
+    it 'reorders every stage from the selected account pipeline without position collisions' do
+      ordered = pipeline.pipeline_stages.order(:position).to_a
+      reordered = [ordered[1], ordered[0], *ordered.drop(2)]
 
       patch "/api/v1/accounts/#{account.id}/pipelines/#{pipeline.id}/pipeline_stages/reorder",
             params: {
-              stages: [
-                { id: first.id, position: 1 },
-                { id: second.id, position: 0 }
-              ]
+              stages: reordered.each_with_index.map do |stage, position|
+                { id: stage.id, position: position }
+              end
             },
             headers: agent.create_new_auth_token,
             as: :json
 
       expect(response).to have_http_status(:success)
-      expect(first.reload.position).to eq(1)
-      expect(second.reload.position).to eq(0)
+      expect(pipeline.pipeline_stages.order(:position).pluck(:id)).to eq(reordered.map(&:id))
     end
 
     it 'rejects a stage from another account' do
