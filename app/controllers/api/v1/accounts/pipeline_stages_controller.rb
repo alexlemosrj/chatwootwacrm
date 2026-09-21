@@ -15,6 +15,25 @@ class Api::V1::Accounts::PipelineStagesController < Api::V1::Accounts::BaseContr
     @pipeline_stage.update!(stage_params)
   end
 
+  def reorder
+    stages = params.require(:stages)
+    ids = stages.map { |item| item.require(:id).to_i }
+
+    unless ids.sort == @pipeline.pipeline_stages.where(id: ids).pluck(:id).sort
+      render json: { error: 'One or more stages do not belong to this pipeline' }, status: :unprocessable_entity
+      return
+    end
+
+    PipelineStage.transaction do
+      stages.each do |item|
+        @pipeline.pipeline_stages.find(item.require(:id)).update!(position: item.require(:position))
+      end
+    end
+
+    @pipeline_stages = @pipeline.pipeline_stages.reload
+    render :index
+  end
+
   def destroy
     if @pipeline_stage.deals.exists?
       render json: { error: 'Stage has deals; move or delete them first' }, status: :unprocessable_entity
