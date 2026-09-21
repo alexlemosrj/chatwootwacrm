@@ -16,10 +16,8 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
 
   def create
     attributes = deal_params
-    stage = PipelineStage.joins(:pipeline)
-                         .where(id: attributes[:pipeline_stage_id], pipelines: { account_id: Current.account.id })
-                         .first
-    attributes[:probability] = stage.default_probability if stage && attributes[:probability].blank?
+    apply_stage_defaults!(attributes) if attributes[:pipeline_stage_id].present?
+
     @deal = Current.account.deals.create!(attributes)
     create_event!('deal_created', { to: deal_snapshot(@deal) })
   end
