@@ -119,22 +119,6 @@ jobs:
           app/javascript/dashboard/routes/dashboard/pipelines/components/DealDetailModal.vue
           app/javascript/dashboard/routes/dashboard/conversation/ContactDeals.vue
 
-      - name: Upload normalized CRM frontend
-        uses: actions/upload-artifact@v4
-        with:
-          name: crm-prettier-output
-          path: |
-            app/javascript/dashboard/api/pipelines.js
-            app/javascript/dashboard/api/deals.js
-            app/javascript/dashboard/api/crmActivities.js
-            app/javascript/dashboard/api/crmEvents.js
-            app/javascript/dashboard/store/modules/pipelines.js
-            app/javascript/dashboard/routes/dashboard/pipelines/pipelines.routes.js
-            app/javascript/dashboard/routes/dashboard/pipelines/pages/PipelinesIndex.vue
-            app/javascript/dashboard/routes/dashboard/pipelines/components/DealDetailModal.vue
-            app/javascript/dashboard/routes/dashboard/conversation/ContactDeals.vue
-          retention-days: 1
-
       - name: Lint CRM frontend
         run: >
           pnpm exec eslint
