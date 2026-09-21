@@ -26,7 +26,10 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
 
   def update
     before = deal_snapshot(@deal)
-    @deal.update!(deal_params)
+    attributes = deal_params
+    apply_stage_defaults!(attributes) if attributes[:pipeline_stage_id].present?
+
+    @deal.update!(attributes)
     after = deal_snapshot(@deal)
 
     log_change_events(before, after) if before != after
@@ -50,6 +53,23 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
       :pipeline_id, :pipeline_stage_id, :contact_id, :conversation_id, :assignee_id,
       utm_data: {}, custom_attributes: {}
     )
+  end
+
+  def apply_stage_defaults!(attributes)
+    stage = Current.account.pipeline_stages.find(attributes[:pipeline_stage_id])
+
+    attributes[:probability] = stage.default_probability if attributes[:probability].blank?
+
+    return if attributes[:status].present?
+
+    attributes[:status] =
+      if stage.is_won?
+        'won'
+      elsif stage.is_lost?
+        'lost'
+      else
+        'open'
+      end
   end
 
   def deal_snapshot(deal)
