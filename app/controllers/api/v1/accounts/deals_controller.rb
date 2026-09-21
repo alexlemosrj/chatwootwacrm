@@ -3,13 +3,9 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
   before_action :check_authorization
 
   def index
-    @deals = policy_scope(Current.account.deals).includes(:contact, :conversation, :assignee, :pipeline, :pipeline_stage)
-    @deals = @deals.where(pipeline_id: params[:pipeline_id]) if params[:pipeline_id].present?
-    @deals = @deals.where(pipeline_stage_id: params[:pipeline_stage_id]) if params[:pipeline_stage_id].present?
-    @deals = @deals.where(contact_id: params[:contact_id]) if params[:contact_id].present?
-    @deals = @deals.where(conversation_id: params[:conversation_id]) if params[:conversation_id].present?
-    @deals = @deals.where(assignee_id: params[:assignee_id]) if params[:assignee_id].present?
-    @deals = @deals.where(status: params[:status]) if params[:status].present?
+    @deals = policy_scope(Current.account.deals)
+             .includes(:contact, :conversation, :assignee, :pipeline, :pipeline_stage)
+             .where(deal_filters)
   end
 
   def show; end
@@ -43,6 +39,10 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
 
   def fetch_deal
     @deal = Current.account.deals.find(params[:id])
+  end
+
+  def deal_filters
+    params.permit(:pipeline_id, :pipeline_stage_id, :contact_id, :conversation_id, :assignee_id, :status).to_h.compact_blank
   end
 
   def deal_params
@@ -82,7 +82,9 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
   end
 
   def log_change_events(before, after)
-    create_event!('stage_changed', { from: before['pipeline_stage_id'], to: after['pipeline_stage_id'] }) if before['pipeline_stage_id'] != after['pipeline_stage_id']
+    if before['pipeline_stage_id'] != after['pipeline_stage_id']
+      create_event!('stage_changed', { from: before['pipeline_stage_id'], to: after['pipeline_stage_id'] })
+    end
     create_event!('status_changed', { from: before['status'], to: after['status'] }) if before['status'] != after['status']
     create_event!('assignment_changed', { from: before['assignee_id'], to: after['assignee_id'] }) if before['assignee_id'] != after['assignee_id']
 
