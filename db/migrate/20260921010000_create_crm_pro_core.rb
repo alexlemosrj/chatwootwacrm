@@ -1,4 +1,3 @@
-# rubocop:disable Metrics/AbcSize, Metrics/MethodLength
 class CreateCrmProCore < ActiveRecord::Migration[7.1]
   def up
     ensure_pipelines
@@ -16,17 +15,22 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
   private
 
   def ensure_pipelines
-    unless table_exists?(:pipelines)
-      create_table :pipelines do |t|
-        t.references :account, null: false, foreign_key: true
-        t.string :name, null: false
-        t.boolean :is_default, null: false, default: false
-        t.timestamps
-      end
-    end
-
+    create_pipelines_table unless table_exists?(:pipelines)
     add_column :pipelines, :is_default, :boolean, null: false, default: false unless column_exists?(:pipelines, :is_default)
     add_index :pipelines, [:account_id, :name] unless index_exists?(:pipelines, [:account_id, :name])
+    add_default_pipeline_index
+  end
+
+  def create_pipelines_table
+    create_table :pipelines do |t|
+      t.references :account, null: false, foreign_key: true
+      t.string :name, null: false
+      t.boolean :is_default, null: false, default: false
+      t.timestamps
+    end
+  end
+
+  def add_default_pipeline_index
     return if index_exists?(:pipelines, :account_id, name: 'index_pipelines_one_default_per_account')
 
     add_index :pipelines,
@@ -37,34 +41,54 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
   end
 
   def ensure_pipeline_stages
-    unless table_exists?(:pipeline_stages)
-      create_table :pipeline_stages do |t|
-        t.references :pipeline, null: false, foreign_key: true
-        t.string :name, null: false
-        t.integer :position, null: false, default: 0
-        t.string :color, null: false, default: '#3b82f6'
-        t.decimal :default_probability, precision: 5, scale: 2, null: false, default: 0
-        t.boolean :is_won, null: false, default: false
-        t.boolean :is_lost, null: false, default: false
-        t.timestamps
-      end
-    end
+    create_pipeline_stages_table unless table_exists?(:pipeline_stages)
+    ensure_pipeline_stage_columns
+    normalize_stage_positions
+    ensure_pipeline_stage_index
+    ensure_pipeline_stage_constraints
+  end
 
-    add_column :pipeline_stages, :default_probability, :decimal, precision: 5, scale: 2, null: false, default: 0 unless column_exists?(:pipeline_stages, :default_probability)
+  def create_pipeline_stages_table
+    create_table :pipeline_stages do |t|
+      t.references :pipeline, null: false, foreign_key: true
+      t.string :name, null: false
+      t.integer :position, null: false, default: 0
+      t.string :color, null: false, default: '#3b82f6'
+      t.decimal :default_probability, precision: 5, scale: 2, null: false, default: 0
+      t.boolean :is_won, null: false, default: false
+      t.boolean :is_lost, null: false, default: false
+      t.timestamps
+    end
+  end
+
+  def ensure_pipeline_stage_columns
+    unless column_exists?(:pipeline_stages, :default_probability)
+      add_column :pipeline_stages, :default_probability, :decimal, precision: 5, scale: 2, null: false, default: 0
+    end
     add_column :pipeline_stages, :is_won, :boolean, null: false, default: false unless column_exists?(:pipeline_stages, :is_won)
     add_column :pipeline_stages, :is_lost, :boolean, null: false, default: false unless column_exists?(:pipeline_stages, :is_lost)
+  end
 
-    normalize_stage_positions
-    remove_index :pipeline_stages, column: [:pipeline_id, :position] if index_exists?(:pipeline_stages, [:pipeline_id, :position]) &&
-                                                                           !index_exists?(:pipeline_stages, [:pipeline_id, :position], unique: true)
-    add_index :pipeline_stages, [:pipeline_id, :position], unique: true unless index_exists?(:pipeline_stages, [:pipeline_id, :position], unique: true)
+  def ensure_pipeline_stage_index
+    has_index = index_exists?(:pipeline_stages, [:pipeline_id, :position])
+    has_unique_index = index_exists?(:pipeline_stages, [:pipeline_id, :position], unique: true)
 
-    add_check_constraint :pipeline_stages,
-                         'default_probability >= 0 AND default_probability <= 100',
-                         name: 'pipeline_stages_probability_range' unless check_constraint_exists?(:pipeline_stages, name: 'pipeline_stages_probability_range')
+    remove_index :pipeline_stages, column: [:pipeline_id, :position] if has_index && !has_unique_index
+    add_index :pipeline_stages, [:pipeline_id, :position], unique: true unless has_unique_index
+  end
+
+  def ensure_pipeline_stage_constraints
+    unless check_constraint_exists?(:pipeline_stages, name: 'pipeline_stages_probability_range')
+      add_check_constraint :pipeline_stages,
+                           'default_probability >= 0 AND default_probability <= 100',
+                           name: 'pipeline_stages_probability_range'
+    end
+
+    return if check_constraint_exists?(:pipeline_stages, name: 'pipeline_stages_not_won_and_lost')
+
     add_check_constraint :pipeline_stages,
                          'NOT (is_won AND is_lost)',
-                         name: 'pipeline_stages_not_won_and_lost' unless check_constraint_exists?(:pipeline_stages, name: 'pipeline_stages_not_won_and_lost')
+                         name: 'pipeline_stages_not_won_and_lost'
   end
 
   def normalize_stage_positions
@@ -83,25 +107,11 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
 
   def ensure_deals
     create_deals_table unless table_exists?(:deals)
-
     change_column :deals, :value, :decimal, precision: 14, scale: 2, null: false, default: 0
-    change_column_default :deals, :currency, from: 'USD', to: 'BRL' if column_exists?(:deals, :currency)
-
-    add_column :deals, :expected_revenue, :decimal, precision: 14, scale: 2, null: false, default: 0 unless column_exists?(:deals, :expected_revenue)
-    add_column :deals, :probability, :decimal, precision: 5, scale: 2, null: false, default: 0 unless column_exists?(:deals, :probability)
-    add_column :deals, :priority_stars, :integer, null: false, default: 0 unless column_exists?(:deals, :priority_stars)
-    add_column :deals, :campaign_source, :string unless column_exists?(:deals, :campaign_source)
-    add_column :deals, :utm_data, :jsonb, null: false, default: {} unless column_exists?(:deals, :utm_data)
-    add_column :deals, :custom_attributes, :jsonb, null: false, default: {} unless column_exists?(:deals, :custom_attributes)
-
-    add_index :deals, [:account_id, :pipeline_id] unless index_exists?(:deals, [:account_id, :pipeline_id])
-    add_index :deals, [:account_id, :status] unless index_exists?(:deals, [:account_id, :status])
-    add_index :deals, [:account_id, :assignee_id] unless index_exists?(:deals, [:account_id, :assignee_id])
-    add_index :deals, [:pipeline_stage_id, :status] unless index_exists?(:deals, [:pipeline_stage_id, :status])
-
-    add_check_constraint :deals, "status IN ('open', 'won', 'lost')", name: 'deals_status_values' unless check_constraint_exists?(:deals, name: 'deals_status_values')
-    add_check_constraint :deals, 'probability >= 0 AND probability <= 100', name: 'deals_probability_range' unless check_constraint_exists?(:deals, name: 'deals_probability_range')
-    add_check_constraint :deals, 'priority_stars >= 0 AND priority_stars <= 3', name: 'deals_priority_stars_range' unless check_constraint_exists?(:deals, name: 'deals_priority_stars_range')
+    change_column_default :deals, :currency, 'BRL'
+    ensure_deal_columns
+    ensure_deal_indexes
+    ensure_deal_constraints
   end
 
   def create_deals_table
@@ -122,9 +132,46 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
     end
   end
 
+  def ensure_deal_columns
+    add_column :deals, :expected_revenue, :decimal, precision: 14, scale: 2, null: false, default: 0 unless column_exists?(:deals, :expected_revenue)
+    add_column :deals, :probability, :decimal, precision: 5, scale: 2, null: false, default: 0 unless column_exists?(:deals, :probability)
+    add_column :deals, :priority_stars, :integer, null: false, default: 0 unless column_exists?(:deals, :priority_stars)
+    add_column :deals, :campaign_source, :string unless column_exists?(:deals, :campaign_source)
+    add_column :deals, :utm_data, :jsonb, null: false, default: {} unless column_exists?(:deals, :utm_data)
+    add_column :deals, :custom_attributes, :jsonb, null: false, default: {} unless column_exists?(:deals, :custom_attributes)
+  end
+
+  def ensure_deal_indexes
+    add_index :deals, [:account_id, :pipeline_id] unless index_exists?(:deals, [:account_id, :pipeline_id])
+    add_index :deals, [:account_id, :status] unless index_exists?(:deals, [:account_id, :status])
+    add_index :deals, [:account_id, :assignee_id] unless index_exists?(:deals, [:account_id, :assignee_id])
+    add_index :deals, [:pipeline_stage_id, :status] unless index_exists?(:deals, [:pipeline_stage_id, :status])
+  end
+
+  def ensure_deal_constraints
+    unless check_constraint_exists?(:deals, name: 'deals_status_values')
+      add_check_constraint :deals, "status IN ('open', 'won', 'lost')", name: 'deals_status_values'
+    end
+    unless check_constraint_exists?(:deals, name: 'deals_probability_range')
+      add_check_constraint :deals, 'probability >= 0 AND probability <= 100', name: 'deals_probability_range'
+    end
+    return if check_constraint_exists?(:deals, name: 'deals_priority_stars_range')
+
+    add_check_constraint :deals,
+                         'priority_stars >= 0 AND priority_stars <= 3',
+                         name: 'deals_priority_stars_range'
+  end
+
   def ensure_crm_activities
     return if table_exists?(:crm_activities)
 
+    create_crm_activities_table
+    add_index :crm_activities, [:account_id, :status, :due_at]
+    add_index :crm_activities, [:deal_id, :status]
+    add_crm_activity_constraints
+  end
+
+  def create_crm_activities_table
     create_table :crm_activities do |t|
       t.references :account, null: false, foreign_key: true
       t.references :deal, foreign_key: true
@@ -139,9 +186,9 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
       t.text :notes
       t.timestamps
     end
+  end
 
-    add_index :crm_activities, [:account_id, :status, :due_at]
-    add_index :crm_activities, [:deal_id, :status]
+  def add_crm_activity_constraints
     add_check_constraint :crm_activities,
                          "activity_type IN ('call', 'whatsapp', 'meeting', 'followup', 'task', 'email')",
                          name: 'crm_activities_type_values'
@@ -167,4 +214,3 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
     add_index :crm_events, [:deal_id, :created_at]
   end
 end
-# rubocop:enable Metrics/AbcSize, Metrics/MethodLength
