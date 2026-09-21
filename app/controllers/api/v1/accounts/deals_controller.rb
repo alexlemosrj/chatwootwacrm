@@ -85,8 +85,12 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
     if before['pipeline_stage_id'] != after['pipeline_stage_id']
       create_event!('stage_changed', { from: before['pipeline_stage_id'], to: after['pipeline_stage_id'] })
     end
-    create_event!('status_changed', { from: before['status'], to: after['status'] }) if before['status'] != after['status']
-    create_event!('assignment_changed', { from: before['assignee_id'], to: after['assignee_id'] }) if before['assignee_id'] != after['assignee_id']
+    if before['status'] != after['status']
+      create_event!('status_changed', { from: before['status'], to: after['status'] })
+    end
+    if before['assignee_id'] != after['assignee_id']
+      create_event!('assignment_changed', { from: before['assignee_id'], to: after['assignee_id'] })
+    end
 
     ignored_keys = %w[pipeline_stage_id status assignee_id]
     before_other = before.except(*ignored_keys)
