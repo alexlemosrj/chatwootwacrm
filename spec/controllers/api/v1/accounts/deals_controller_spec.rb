@@ -122,6 +122,27 @@ RSpec.describe 'Deals API', type: :request do
     end
   end
 
+  describe 'DELETE /api/v1/accounts/:account_id/deals/:id' do
+    it 'preserves a deletion event after removing the opportunity' do
+      deal = account.deals.create!(
+        pipeline: pipeline,
+        pipeline_stage: stage,
+        title: 'Remover oportunidade'
+      )
+
+      delete "/api/v1/accounts/#{account.id}/deals/#{deal.id}",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(Deal.exists?(deal.id)).to be(false)
+
+      event = account.crm_events.find_by!(event_type: 'deal_deleted')
+      expect(event.deal_id).to be_nil
+      expect(event.metadata.dig('from', 'title')).to eq('Remover oportunidade')
+    end
+  end
+
   describe 'GET /api/v1/accounts/:account_id/deals' do
     it 'never returns deals from another account' do
       own_deal = account.deals.create!(
