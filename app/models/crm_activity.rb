@@ -17,10 +17,21 @@ class CrmActivity < ApplicationRecord
   validate :contact_belongs_to_account
   validate :assignee_belongs_to_account
 
+  before_validation :sync_completed_at
+
   scope :planned, -> { where(status: 'planned') }
   scope :overdue, -> { planned.where('due_at < ?', Time.current) }
 
   private
+
+  def sync_completed_at
+    if status == 'completed'
+      self.completed_at ||= Time.current
+    else
+      self.completed_at = nil
+    end
+  end
+
 
   def deal_belongs_to_account
     return if deal.blank? || account.blank? || deal.account_id == account_id
