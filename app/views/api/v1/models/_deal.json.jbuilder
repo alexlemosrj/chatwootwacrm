@@ -26,7 +26,7 @@ if resource.contact
     json.name resource.contact.name
     json.phone_number resource.contact.phone_number
     json.email resource.contact.email
-    json.thumbnail resource.contact.thumbnail
+    json.thumbnail resource.contact.avatar_url
   end
 end
 
