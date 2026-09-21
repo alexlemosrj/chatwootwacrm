@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength
 class CreateCrmProCore < ActiveRecord::Migration[7.1]
   def up
     ensure_pipelines
@@ -214,3 +215,5 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
     add_index :crm_events, [:deal_id, :created_at]
   end
 end
+
+# rubocop:enable Metrics/ClassLength
