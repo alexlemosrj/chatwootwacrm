@@ -1,4 +1,3 @@
-<!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -393,6 +392,20 @@ const statusClass = status => ({
   'bg-n-teal-3 text-n-teal-11': status === 'won',
   'bg-n-ruby-3 text-n-ruby-11': status === 'lost',
 });
+
+const contactDisplay = deal =>
+  deal.contact?.name || t('PIPELINES.EMPTY_CONTACT');
+
+const assigneeDisplay = deal =>
+  deal.assignee?.name || t('PIPELINES.EMPTY_ASSIGNEE');
+
+const displayValue = value => value || t('PIPELINES.NOT_AVAILABLE');
+
+const contactOptionLabel = contact =>
+  contact.name ||
+  contact.email ||
+  contact.phone_number ||
+  t('PIPELINES.CONTACT_FALLBACK', { id: contact.id });
 </script>
 
 <template>
@@ -404,7 +417,7 @@ const statusClass = status => ({
             {{ t('PIPELINES.TITLE') }}
           </h1>
           <p class="mt-1 text-sm text-n-slate-10">
-            CRM de oportunidades integrado aos contatos e conversas do Chatwoot.
+            {{ t('PIPELINES.DESCRIPTION') }}
           </p>
         </div>
 
@@ -525,7 +538,7 @@ const statusClass = status => ({
         v-if="uiFlags.isFetching || uiFlags.isFetchingDeals"
         class="flex h-full items-center justify-center text-sm text-n-slate-10"
       >
-        Carregando CRM…
+        {{ t('PIPELINES.LOADING') }}
       </div>
 
       <div
@@ -574,7 +587,7 @@ const statusClass = status => ({
                     {{ deal.title }}
                   </h3>
                   <p class="mt-0.5 truncate text-xs text-n-slate-10">
-                    {{ deal.contact?.name || 'Sem contato vinculado' }}
+                    {{ contactDisplay(deal) }}
                   </p>
                 </div>
                 <span
@@ -596,7 +609,7 @@ const statusClass = status => ({
 
               <div class="mt-2 flex items-center justify-between gap-2 text-[11px] text-n-slate-10">
                 <span>{{ Number(deal.probability) || 0 }}%</span>
-                <span class="truncate">{{ deal.assignee?.name || 'Sem responsável' }}</span>
+                <span class="truncate">{{ assigneeDisplay(deal) }}</span>
               </div>
             </button>
 
@@ -604,7 +617,8 @@ const statusClass = status => ({
               class="flex h-20 w-full items-center justify-center rounded-lg border border-dashed border-n-weak text-xs font-medium text-n-slate-10 hover:border-n-brand hover:text-n-brand"
               @click="openCreateDeal(stage.id)"
             >
-              + {{ t('PIPELINES.ADD_DEAL') }}
+              <span class="i-lucide-plus size-4" />
+              {{ t('PIPELINES.ADD_DEAL') }}
             </button>
           </div>
         </section>
@@ -613,7 +627,7 @@ const statusClass = status => ({
           v-if="!stages.length"
           class="flex h-full min-w-full items-center justify-center text-sm text-n-slate-10"
         >
-          Este funil ainda não possui etapas. Abra as configurações para adicionar a primeira.
+          {{ t('PIPELINES.EMPTY_STAGES') }}
         </div>
       </div>
 
@@ -622,14 +636,14 @@ const statusClass = status => ({
           <table class="w-full min-w-[980px] border-collapse text-left text-sm">
             <thead class="bg-n-solid-2 text-xs uppercase tracking-wide text-n-slate-10">
               <tr>
-                <th class="px-4 py-3">Oportunidade</th>
-                <th class="px-4 py-3">Contato</th>
-                <th class="px-4 py-3">Etapa</th>
-                <th class="px-4 py-3">Valor</th>
-                <th class="px-4 py-3">Prob.</th>
-                <th class="px-4 py-3">Responsável</th>
-                <th class="px-4 py-3">Fechamento</th>
-                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.OPPORTUNITY') }}</th>
+                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.CONTACT') }}</th>
+                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.STAGE') }}</th>
+                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.VALUE') }}</th>
+                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.PROBABILITY') }}</th>
+                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.ASSIGNEE') }}</th>
+                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.CLOSE_DATE') }}</th>
+                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.STATUS') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-n-weak bg-n-solid-1">
@@ -643,7 +657,7 @@ const statusClass = status => ({
                   {{ deal.title }}
                 </td>
                 <td class="px-4 py-3 text-n-slate-11">
-                  {{ deal.contact?.name || '—' }}
+                  {{ displayValue(deal.contact?.name) }}
                 </td>
                 <td class="px-4 py-3 text-n-slate-11">
                   {{ selectedStageName(deal) }}
@@ -655,10 +669,10 @@ const statusClass = status => ({
                   {{ Number(deal.probability) || 0 }}%
                 </td>
                 <td class="px-4 py-3 text-n-slate-11">
-                  {{ deal.assignee?.name || '—' }}
+                  {{ displayValue(deal.assignee?.name) }}
                 </td>
                 <td class="px-4 py-3 text-n-slate-11">
-                  {{ deal.expected_close_date || '—' }}
+                  {{ displayValue(deal.expected_close_date) }}
                 </td>
                 <td class="px-4 py-3">
                   <span
@@ -723,9 +737,9 @@ const statusClass = status => ({
           <label class="flex flex-col gap-1.5">
             <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.CONTACT') }}</span>
             <select v-model.number="form.contact_id" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
-              <option :value="null">Sem contato</option>
+              <option :value="null">{{ t('PIPELINES.EMPTY_CONTACT') }}</option>
               <option v-for="contact in contacts" :key="contact.id" :value="contact.id">
-                {{ contact.name || contact.email || contact.phone_number || `#${contact.id}` }}
+                {{ contactOptionLabel(contact) }}
               </option>
             </select>
           </label>
@@ -733,7 +747,7 @@ const statusClass = status => ({
           <label class="flex flex-col gap-1.5">
             <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.ASSIGNEE') }}</span>
             <select v-model.number="form.assignee_id" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
-              <option :value="null">Sem responsável</option>
+              <option :value="null">{{ t('PIPELINES.EMPTY_ASSIGNEE') }}</option>
               <option v-for="agent in agents" :key="agent.id" :value="agent.id">
                 {{ agent.name }}
               </option>
@@ -748,10 +762,10 @@ const statusClass = status => ({
           <label class="flex flex-col gap-1.5">
             <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.PRIORITY') }}</span>
             <select v-model.number="form.priority_stars" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
-              <option :value="0">—</option>
-              <option :value="1">★</option>
-              <option :value="2">★★</option>
-              <option :value="3">★★★</option>
+              <option :value="0">{{ t('PIPELINES.PRIORITY.NONE') }}</option>
+              <option :value="1">{{ t('PIPELINES.PRIORITY.ONE') }}</option>
+              <option :value="2">{{ t('PIPELINES.PRIORITY.TWO') }}</option>
+              <option :value="3">{{ t('PIPELINES.PRIORITY.THREE') }}</option>
             </select>
           </label>
 
@@ -788,7 +802,7 @@ const statusClass = status => ({
             <h2 class="text-lg font-semibold text-n-slate-12">
               {{ t('PIPELINES.SETTINGS') }}
             </h2>
-            <p class="text-xs text-n-slate-10">Personalize o funil, suas etapas, cores e probabilidades.</p>
+            <p class="text-xs text-n-slate-10">{{ t('PIPELINES.SETTINGS_PANEL.DESCRIPTION') }}</p>
           </div>
           <button class="size-8 rounded-lg hover:bg-n-alpha-2" @click="showSettings = false">
             <span class="i-lucide-x size-4" />
@@ -810,7 +824,8 @@ const statusClass = status => ({
             <div class="mb-2 flex items-center justify-between">
               <h3 class="font-semibold text-n-slate-12">{{ t('PIPELINES.SETTINGS_PANEL.STAGES') }}</h3>
               <button class="h-8 rounded-lg border border-n-weak px-3 text-xs font-medium" @click="addStage">
-                + {{ t('PIPELINES.SETTINGS_PANEL.ADD_STAGE') }}
+                <span class="i-lucide-plus size-4" />
+                {{ t('PIPELINES.SETTINGS_PANEL.ADD_STAGE') }}
               </button>
             </div>
 
@@ -821,8 +836,8 @@ const statusClass = status => ({
                 class="grid gap-2 rounded-lg border border-n-weak bg-n-solid-2 p-3 md:grid-cols-[auto_1fr_110px_90px_auto]"
               >
                 <div class="flex items-center gap-1">
-                  <button class="size-7 rounded border border-n-weak" :disabled="index === 0" @click="moveStage(index, 'up')">↑</button>
-                  <button class="size-7 rounded border border-n-weak" :disabled="index === stageDrafts.length - 1" @click="moveStage(index, 'down')">↓</button>
+                  <button class="size-7 rounded border border-n-weak" :disabled="index === 0" @click="moveStage(index, 'up')"><span class="i-lucide-arrow-up size-4" /></button>
+                  <button class="size-7 rounded border border-n-weak" :disabled="index === stageDrafts.length - 1" @click="moveStage(index, 'down')"><span class="i-lucide-arrow-down size-4" /></button>
                 </div>
                 <input v-model="stage.name" class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
                 <input v-model="stage.color" type="color" class="h-9 w-full rounded-lg border border-n-weak bg-n-solid-1 p-1" />
