@@ -53,7 +53,8 @@
       "DELETE_STAGE": "Delete stage",
       "DELETE_PIPELINE": "Delete pipeline",
       "SAVE_STAGE": "Save",
-      "BLANK_PIPELINE": "Create blank pipeline"
+      "BLANK_PIPELINE": "Create blank pipeline",
+      "DESCRIPTION": "Customize the pipeline, its stages, colors, and probabilities."
     },
     "ACTIVITIES": {
       "TITLE": "Activities",
@@ -61,10 +62,30 @@
       "OVERDUE": "Overdue",
       "TODAY": "Today",
       "PLANNED": "Planned",
-      "COMPLETED": "Completed"
+      "COMPLETED": "Completed",
+      "PLACEHOLDER": "E.g. Follow up with customer",
+      "EMPTY": "No activities recorded.",
+      "TYPES": {
+        "FOLLOWUP": "Follow-up",
+        "CALL": "Call",
+        "WHATSAPP": "WhatsApp",
+        "MEETING": "Meeting",
+        "TASK": "Task",
+        "EMAIL": "Email"
+      }
     },
     "HISTORY": {
-      "TITLE": "CRM history"
+      "TITLE": "CRM history",
+      "EMPTY": "No events recorded.",
+      "SYSTEM": "System",
+      "DEAL_CREATED": "Opportunity created",
+      "DEAL_UPDATED": "Opportunity updated",
+      "STAGE_CHANGED": "Stage changed",
+      "STATUS_CHANGED": "Status changed",
+      "ASSIGNMENT_CHANGED": "Assignee changed",
+      "ACTIVITY_CREATED": "Activity created",
+      "ACTIVITY_UPDATED": "Activity updated",
+      "ACTIVITY_DELETED": "Activity removed"
     },
     "ERRORS": {
       "CREATE_PIPELINE": "Could not create pipeline",
@@ -76,7 +97,37 @@
       "TITLE": "Opportunities",
       "CREATE": "Create opportunity",
       "EMPTY": "No opportunities for this contact",
-      "OPEN_BOARD": "Open pipelines"
+      "OPEN_BOARD": "Open pipelines",
+      "DEFAULT_TITLE": "Opportunity — contact #{id}"
+    },
+    "DESCRIPTION": "Opportunity CRM integrated with Chatwoot contacts and conversations.",
+    "LOADING": "Loading CRM…",
+    "EMPTY_STAGES": "This pipeline has no stages yet. Open settings to add the first one.",
+    "EMPTY_CONTACT": "No linked contact",
+    "EMPTY_ASSIGNEE": "No assignee",
+    "NOT_AVAILABLE": "—",
+    "CONTACT_FALLBACK": "Contact #{id}",
+    "TABLE": {
+      "OPPORTUNITY": "Opportunity",
+      "CONTACT": "Contact",
+      "STAGE": "Stage",
+      "VALUE": "Value",
+      "PROBABILITY": "Prob.",
+      "ASSIGNEE": "Assignee",
+      "CLOSE_DATE": "Close date",
+      "STATUS": "Status"
+    },
+    "PRIORITY": {
+      "NONE": "No priority",
+      "ONE": "★",
+      "TWO": "★★",
+      "THREE": "★★★"
+    },
+    "DETAIL": {
+      "ID": "CRM · #{id}"
+    },
+    "MESSAGES": {
+      "DEAL_UPDATED": "Opportunity updated."
     }
   }
 }
