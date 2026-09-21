@@ -3,6 +3,7 @@ class PipelineStagePolicy < ApplicationPolicy
   def show? = account_member?
   def create? = account_member?
   def update? = account_member?
+  def reorder? = account_member?
   def destroy? = account_member?
 
   private
