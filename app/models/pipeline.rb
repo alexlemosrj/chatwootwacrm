@@ -10,8 +10,10 @@ class Pipeline < ApplicationRecord
   ].freeze
 
   belongs_to :account
-  has_many :pipeline_stages, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :pipeline
+  # Restrict first so a failed pipeline deletion cannot remove stages before
+  # Rails notices that opportunities still reference the pipeline.
   has_many :deals, dependent: :restrict_with_error
+  has_many :pipeline_stages, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :pipeline
 
   validates :name, presence: true
 
