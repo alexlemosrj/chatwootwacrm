@@ -33,6 +33,11 @@ class Api::V1::Accounts::PipelinesController < Api::V1::Accounts::BaseController
       return
     end
 
+    if @pipeline.deals.exists?
+      render json: { error: 'Pipeline has deals; move or delete them first' }, status: :unprocessable_entity
+      return
+    end
+
     was_default = @pipeline.is_default?
     @pipeline.destroy!
     set_as_default!(Current.account.pipelines.order(:id).first) if was_default
