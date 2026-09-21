@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
-import Draggable from 'vuedraggable';
+import DealDetailModal from '../components/DealDetailModal.vue';
 
 const { t } = useI18n();
 const store = useStore();
@@ -13,23 +13,34 @@ const selectedPipeline = useMapGetter('pipelines/getSelectedPipeline');
 const deals = useMapGetter('pipelines/getDeals');
 const uiFlags = useMapGetter('pipelines/getUIFlags');
 const agents = useMapGetter('agents/getAgents');
+const contacts = useMapGetter('contacts/getContacts');
 
+const viewMode = ref('kanban');
+const searchQuery = ref('');
 const showDealForm = ref(false);
 const showSettings = ref(false);
 const showPipelineForm = ref(false);
-const editingDeal = ref(null);
-const defaultStageId = ref(null);
 const newPipelineName = ref('');
+const createBlankPipeline = ref(false);
+const draggingDealId = ref(null);
+const selectedDeal = ref(null);
+const showDealDetail = ref(false);
+const settingsName = ref('');
+const stageDrafts = ref([]);
 
 const form = reactive({
   title: '',
   value: 0,
-  currency: 'USD',
+  currency: 'BRL',
+  expected_revenue: 0,
+  probability: 0,
+  priority_stars: 0,
   pipeline_stage_id: null,
   contact_id: null,
   assignee_id: null,
   expected_close_date: '',
   notes: '',
+  campaign_source: '',
   status: 'open',
 });
 
@@ -39,226 +50,276 @@ const stages = computed(() =>
   )
 );
 
-const stageWeights = [0.1, 0.3, 0.5, 0.7, 1.0];
+const normalizedQuery = computed(() => searchQuery.value.trim().toLowerCase());
 
-const formatMoney = (value, currency = 'USD') => {
+const filteredDeals = computed(() => {
+  if (!normalizedQuery.value) return deals.value;
+  return deals.value.filter(deal => {
+    const haystack = [
+      deal.title,
+      deal.contact?.name,
+      deal.contact?.phone_number,
+      deal.assignee?.name,
+      deal.campaign_source,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(normalizedQuery.value);
+  });
+});
+
+const dealsForStage = stageId =>
+  filteredDeals.value.filter(deal => deal.pipeline_stage_id === stageId);
+
+const stageTotal = stageId =>
+  dealsForStage(stageId).reduce(
+    (total, deal) => total + (Number(deal.value) || 0),
+    0
+  );
+
+const formatMoney = (value, currency = 'BRL') => {
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency,
+      currency: currency || 'BRL',
       maximumFractionDigits: 0,
     }).format(Number(value) || 0);
   } catch {
-    return `${currency} ${Number(value) || 0}`;
+    return `${currency || 'BRL'} ${Number(value) || 0}`;
   }
 };
-
-const dealsForStage = stageId =>
-  deals.value.filter(
-    d => d.pipeline_stage_id === stageId || d.stage_id === stageId
-  );
-
-const stageTotal = stageId =>
-  dealsForStage(stageId).reduce((sum, d) => sum + (Number(d.value) || 0), 0);
 
 const analytics = computed(() => {
-  const openDeals = deals.value.filter(d => d.status === 'open');
-  const value = openDeals.reduce((s, d) => s + (Number(d.value) || 0), 0);
+  const openDeals = deals.value.filter(deal => deal.status === 'open');
+  const value = openDeals.reduce(
+    (sum, deal) => sum + (Number(deal.value) || 0),
+    0
+  );
+  const weighted = openDeals.reduce((sum, deal) => {
+    const expected = Number(deal.expected_revenue) || 0;
+    if (expected > 0) return sum + expected;
+    return sum + (Number(deal.value) || 0) * ((Number(deal.probability) || 0) / 100);
+  }, 0);
   const count = openDeals.length;
-  const avg = count ? value / count : 0;
-  let weighted = 0;
-  stages.value.forEach((stage, idx) => {
-    const w = stageWeights[Math.min(idx, stageWeights.length - 1)];
-    weighted += dealsForStage(stage.id)
-      .filter(d => d.status === 'open')
-      .reduce((s, d) => s + (Number(d.value) || 0) * w, 0);
-  });
   const now = new Date();
-  const monthStart =
-    new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000;
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000;
   const won = deals.value.filter(
-    d => d.status === 'won' && d.updated_at >= monthStart
+    deal => deal.status === 'won' && Number(deal.updated_at) >= monthStart
   ).length;
   const lost = deals.value.filter(
-    d => d.status === 'lost' && d.updated_at >= monthStart
+    deal => deal.status === 'lost' && Number(deal.updated_at) >= monthStart
   ).length;
-  const currency = openDeals[0]?.currency || 'USD';
-  return { count, value, avg, weighted, won, lost, currency };
+
+  return {
+    count,
+    value,
+    weighted,
+    avg: count ? value / count : 0,
+    won,
+    lost,
+    currency: openDeals[0]?.currency || deals.value[0]?.currency || 'BRL',
+  };
 });
 
-const metricCards = computed(() => {
-  const { currency } = analytics.value;
-  return [
-    {
-      key: 'count',
-      label: t('PIPELINES.ANALYTICS.COUNT'),
-      value: analytics.value.count,
-      icon: 'i-lucide-briefcase',
-      iconClass: 'bg-n-slate-3 text-n-slate-11',
-    },
-    {
-      key: 'value',
-      label: t('PIPELINES.ANALYTICS.VALUE'),
-      value: formatMoney(analytics.value.value, currency),
-      icon: 'i-lucide-wallet',
-      iconClass: 'bg-n-solid-blue text-n-blue-11',
-    },
-    {
-      key: 'avg',
-      label: t('PIPELINES.ANALYTICS.AVG'),
-      value: formatMoney(analytics.value.avg, currency),
-      icon: 'i-lucide-chart-column',
-      iconClass: 'bg-n-solid-iris text-n-iris-11',
-    },
-    {
-      key: 'weighted',
-      label: t('PIPELINES.ANALYTICS.WEIGHTED'),
-      value: formatMoney(analytics.value.weighted, currency),
-      icon: 'i-lucide-scale',
-      iconClass: 'bg-n-amber-3 text-n-amber-11',
-    },
-    {
-      key: 'won',
-      label: t('PIPELINES.ANALYTICS.WON'),
-      value: analytics.value.won,
-      icon: 'i-lucide-trophy',
-      iconClass: 'bg-n-teal-3 text-n-teal-11',
-      valueClass: 'text-n-teal-11',
-    },
-    {
-      key: 'lost',
-      label: t('PIPELINES.ANALYTICS.LOST'),
-      value: analytics.value.lost,
-      icon: 'i-lucide-circle-x',
-      iconClass: 'bg-n-ruby-3 text-n-ruby-11',
-      valueClass: 'text-n-ruby-11',
-    },
-  ];
-});
+const metricCards = computed(() => [
+  {
+    label: t('PIPELINES.ANALYTICS.COUNT'),
+    value: analytics.value.count,
+    icon: 'i-lucide-briefcase-business',
+  },
+  {
+    label: t('PIPELINES.ANALYTICS.VALUE'),
+    value: formatMoney(analytics.value.value, analytics.value.currency),
+    icon: 'i-lucide-wallet',
+  },
+  {
+    label: t('PIPELINES.ANALYTICS.AVG'),
+    value: formatMoney(analytics.value.avg, analytics.value.currency),
+    icon: 'i-lucide-chart-column',
+  },
+  {
+    label: t('PIPELINES.ANALYTICS.WEIGHTED'),
+    value: formatMoney(analytics.value.weighted, analytics.value.currency),
+    icon: 'i-lucide-chart-no-axes-combined',
+  },
+  {
+    label: t('PIPELINES.ANALYTICS.WON'),
+    value: analytics.value.won,
+    icon: 'i-lucide-trophy',
+  },
+  {
+    label: t('PIPELINES.ANALYTICS.LOST'),
+    value: analytics.value.lost,
+    icon: 'i-lucide-circle-x',
+  },
+]);
 
-onMounted(async () => {
-  await store.dispatch('agents/get');
-  await store.dispatch('pipelines/get');
-});
+const selectedStageName = deal =>
+  stages.value.find(stage => stage.id === deal.pipeline_stage_id)?.name || '—';
 
-watch(selectedPipeline, p => {
-  if (p?.stages?.length && !form.pipeline_stage_id) {
-    form.pipeline_stage_id = p.stages[0].id;
-  }
-});
-
-const selectPipeline = id => store.dispatch('pipelines/selectPipeline', id);
-
-const createPipeline = async () => {
-  const name = newPipelineName.value.trim();
-  if (!name) return;
-  try {
-    const pipeline = await store.dispatch('pipelines/create', { name });
-    newPipelineName.value = '';
-    showPipelineForm.value = false;
-    await store.dispatch('pipelines/selectPipeline', pipeline.id);
-    useAlert(t('PIPELINES.CREATED'));
-  } catch (e) {
-    useAlert(e.message || t('PIPELINES.ERRORS.CREATE_PIPELINE'));
-  }
-};
-
-const openCreateDeal = stageId => {
-  editingDeal.value = null;
+const resetDealForm = stageId => {
   Object.assign(form, {
     title: '',
     value: 0,
-    currency: 'USD',
-    pipeline_stage_id: stageId || stages.value[0]?.id,
+    currency: 'BRL',
+    expected_revenue: 0,
+    probability:
+      stages.value.find(stage => stage.id === stageId)?.default_probability || 0,
+    priority_stars: 0,
+    pipeline_stage_id: stageId || stages.value[0]?.id || null,
     contact_id: null,
     assignee_id: null,
     expected_close_date: '',
     notes: '',
+    campaign_source: '',
     status: 'open',
   });
-  defaultStageId.value = stageId;
-  showDealForm.value = true;
 };
 
-const openEditDeal = deal => {
-  editingDeal.value = deal;
-  Object.assign(form, {
-    title: deal.title,
-    value: deal.value,
-    currency: deal.currency || 'USD',
-    pipeline_stage_id: deal.pipeline_stage_id || deal.stage_id,
-    contact_id: deal.contact_id,
-    assignee_id: deal.assignee_id,
-    expected_close_date: deal.expected_close_date || '',
-    notes: deal.notes || '',
-    status: deal.status || 'open',
-  });
-  showDealForm.value = true;
+const load = async () => {
+  await Promise.all([
+    store.dispatch('agents/get'),
+    store.dispatch('contacts/get', { page: 1 }),
+  ]);
+  await store.dispatch('pipelines/get');
 };
 
-const saveDeal = async () => {
-  const payload = {
-    title: form.title,
-    value: Number(form.value) || 0,
-    currency: form.currency,
-    pipeline_id: selectedPipeline.value.id,
-    pipeline_stage_id: form.pipeline_stage_id,
-    contact_id: form.contact_id || null,
-    assignee_id: form.assignee_id || null,
-    expected_close_date: form.expected_close_date || null,
-    notes: form.notes,
-    status: form.status,
-  };
-  try {
-    if (editingDeal.value) {
-      await store.dispatch('pipelines/updateDeal', {
-        id: editingDeal.value.id,
-        ...payload,
-      });
-    } else {
-      await store.dispatch('pipelines/createDeal', payload);
-    }
-    showDealForm.value = false;
-  } catch (e) {
-    useAlert(e.message || t('PIPELINES.ERRORS.SAVE_DEAL'));
+onMounted(load);
+
+watch(
+  () => selectedPipeline.value?.id,
+  () => {
+    searchQuery.value = '';
   }
-};
+);
 
-const deleteDeal = async () => {
-  if (!editingDeal.value) return;
-  await store.dispatch('pipelines/deleteDeal', editingDeal.value.id);
-  showDealForm.value = false;
-};
-
-const onDealDrop = async (stageId, event) => {
-  const dealId = Number(event.item?.dataset?.dealId);
-  if (!dealId) return;
-  try {
-    await store.dispatch('pipelines/moveDeal', { dealId, stageId });
-  } catch (e) {
-    useAlert(e.message || t('PIPELINES.ERRORS.MOVE_DEAL'));
-    await store.dispatch('pipelines/getDeals', selectedPipeline.value.id);
-  }
-};
-
-const settingsName = ref('');
 watch(showSettings, open => {
-  if (open) settingsName.value = selectedPipeline.value?.name || '';
+  if (!open || !selectedPipeline.value) return;
+  settingsName.value = selectedPipeline.value.name;
+  stageDrafts.value = stages.value.map(stage => ({ ...stage }));
 });
 
+const selectPipeline = async id => {
+  await store.dispatch('pipelines/selectPipeline', Number(id));
+};
+
+const createPipeline = async () => {
+  const name = newPipelineName.value.trim();
+  if (!name) return;
+
+  try {
+    const pipeline = await store.dispatch('pipelines/create', {
+      name,
+      with_default_stages: !createBlankPipeline.value,
+    });
+    newPipelineName.value = '';
+    createBlankPipeline.value = false;
+    showPipelineForm.value = false;
+    await store.dispatch('pipelines/get');
+    await store.dispatch('pipelines/selectPipeline', pipeline.id);
+    useAlert(t('PIPELINES.CREATED'));
+  } catch (error) {
+    useAlert(
+      error?.response?.data?.message ||
+        error.message ||
+        t('PIPELINES.ERRORS.CREATE_PIPELINE')
+    );
+  }
+};
+
+const openCreateDeal = stageId => {
+  resetDealForm(stageId);
+  showDealForm.value = true;
+};
+
+const createDeal = async () => {
+  if (!form.title.trim() || !form.pipeline_stage_id) return;
+
+  try {
+    const created = await store.dispatch('pipelines/createDeal', {
+      title: form.title.trim(),
+      value: Number(form.value) || 0,
+      currency: form.currency || 'BRL',
+      expected_revenue: Number(form.expected_revenue) || 0,
+      probability: Number(form.probability) || 0,
+      priority_stars: Number(form.priority_stars) || 0,
+      pipeline_id: selectedPipeline.value.id,
+      pipeline_stage_id: form.pipeline_stage_id,
+      contact_id: form.contact_id || null,
+      assignee_id: form.assignee_id || null,
+      expected_close_date: form.expected_close_date || null,
+      notes: form.notes || '',
+      campaign_source: form.campaign_source || '',
+      status: form.status,
+    });
+    showDealForm.value = false;
+    selectedDeal.value = created;
+    showDealDetail.value = true;
+  } catch (error) {
+    useAlert(
+      error?.response?.data?.message ||
+        error.message ||
+        t('PIPELINES.ERRORS.SAVE_DEAL')
+    );
+  }
+};
+
+const openDeal = deal => {
+  selectedDeal.value = deal;
+  showDealDetail.value = true;
+};
+
+const refreshDeals = async () => {
+  if (!selectedPipeline.value?.id) return;
+  await store.dispatch('pipelines/getDeals', selectedPipeline.value.id);
+  if (selectedDeal.value?.id) {
+    selectedDeal.value =
+      deals.value.find(deal => deal.id === selectedDeal.value.id) ||
+      selectedDeal.value;
+  }
+};
+
+const onDragStart = dealId => {
+  draggingDealId.value = dealId;
+};
+
+const onDrop = async stageId => {
+  const dealId = draggingDealId.value;
+  draggingDealId.value = null;
+  if (!dealId) return;
+
+  const deal = deals.value.find(item => item.id === dealId);
+  if (!deal || deal.pipeline_stage_id === stageId) return;
+
+  try {
+    await store.dispatch('pipelines/moveDeal', { dealId, stageId });
+  } catch (error) {
+    useAlert(
+      error?.response?.data?.message ||
+        error.message ||
+        t('PIPELINES.ERRORS.MOVE_DEAL')
+    );
+  }
+};
+
 const savePipelineName = async () => {
+  const name = settingsName.value.trim();
+  if (!name) return;
   await store.dispatch('pipelines/update', {
     id: selectedPipeline.value.id,
-    name: settingsName.value,
+    name,
   });
 };
 
 const addStage = async () => {
-  await store.dispatch('pipelines/createStage', {
+  const created = await store.dispatch('pipelines/createStage', {
     name: t('PIPELINES.SETTINGS_PANEL.NEW_STAGE_NAME'),
     color: '#64748b',
-    position: stages.value.length,
+    position: stageDrafts.value.length,
+    default_probability: 0,
   });
+  stageDrafts.value.push({ ...created });
 };
 
 const saveStage = async stage => {
@@ -267,420 +328,531 @@ const saveStage = async stage => {
     name: stage.name,
     color: stage.color,
     position: stage.position,
+    default_probability: Number(stage.default_probability) || 0,
+    is_won: !!stage.is_won,
+    is_lost: !!stage.is_lost,
   });
 };
 
-const removeStage = async stageId => {
+const deleteStage = async stage => {
   try {
-    await store.dispatch('pipelines/deleteStage', stageId);
-  } catch (e) {
+    await store.dispatch('pipelines/deleteStage', stage.id);
+    stageDrafts.value = stageDrafts.value.filter(item => item.id !== stage.id);
+  } catch (error) {
     useAlert(
-      e?.response?.data?.error ||
-        e.message ||
+      error?.response?.data?.error ||
+        error.message ||
         t('PIPELINES.ERRORS.DELETE_STAGE')
     );
   }
 };
 
-const deletePipeline = async () => {
-  await store.dispatch('pipelines/delete', selectedPipeline.value.id);
-  showSettings.value = false;
-  await store.dispatch('pipelines/get');
+const moveStage = async (index, direction) => {
+  const target = direction === 'up' ? index - 1 : index + 1;
+  if (target < 0 || target >= stageDrafts.value.length) return;
+
+  const reordered = [...stageDrafts.value];
+  [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+  reordered.forEach((stage, position) => {
+    stage.position = position;
+  });
+  stageDrafts.value = reordered;
+
+  await store.dispatch(
+    'pipelines/reorderStages',
+    reordered.map(stage => ({ id: stage.id, position: stage.position }))
+  );
 };
+
+const deletePipeline = async () => {
+  try {
+    await store.dispatch('pipelines/delete', selectedPipeline.value.id);
+    showSettings.value = false;
+    await store.dispatch('pipelines/get');
+  } catch (error) {
+    useAlert(
+      error?.response?.data?.error ||
+        error.message ||
+        'Não foi possível excluir o funil.'
+    );
+  }
+};
+
+const statusLabel = status => {
+  const labels = {
+    open: t('PIPELINES.STATUS.OPEN'),
+    won: t('PIPELINES.STATUS.WON'),
+    lost: t('PIPELINES.STATUS.LOST'),
+  };
+  return labels[status] || status;
+};
+
+const statusClass = status => ({
+  'bg-n-slate-3 text-n-slate-11': status === 'open',
+  'bg-n-teal-3 text-n-teal-11': status === 'won',
+  'bg-n-ruby-3 text-n-ruby-11': status === 'lost',
+});
 </script>
 
 <template>
-  <div
-    class="flex h-full min-h-0 w-full min-w-0 flex-col gap-4 overflow-hidden bg-n-background p-4"
-  >
-    <div class="flex shrink-0 flex-col gap-3">
-      <h1 class="text-xl font-semibold text-n-slate-12">
-        {{ $t('PIPELINES.TITLE') }}
-      </h1>
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex min-w-0 flex-1 items-center gap-2">
-          <div
-            class="relative inline-flex w-full min-w-48 max-w-80 items-center"
-          >
-            <span
-              class="pointer-events-none absolute size-4 -translate-y-1/2 i-lucide-git-fork start-2.5 top-1/2 text-n-brand"
-            />
-            <select
-              class="h-9 w-full min-w-0 cursor-pointer appearance-none truncate rounded-lg border border-n-strong bg-n-solid-1 bg-none py-0 pl-9 pr-9 text-sm font-medium text-n-slate-12 outline-none transition-colors hover:bg-n-alpha-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
-              :value="selectedPipeline?.id"
-              :aria-label="$t('PIPELINES.SELECT_PIPELINE')"
-              @change="selectPipeline(Number($event.target.value))"
-            >
-              <option v-for="p in pipelines" :key="p.id" :value="p.id">
-                {{ p.name }}
-              </option>
-            </select>
-            <span
-              class="pointer-events-none absolute size-4 -translate-y-1/2 i-lucide-chevron-down end-2.5 top-1/2 text-n-slate-11"
-            />
-          </div>
-          <template v-if="showPipelineForm">
-            <input
-              v-model="newPipelineName"
-              class="h-9 w-44 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none placeholder:text-n-slate-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
-              :placeholder="$t('PIPELINES.PIPELINE_NAME')"
-              @keyup.enter="createPipeline"
-            />
-            <button
-              class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-n-brand px-3 text-sm font-medium text-white outline-none transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
-              @click="createPipeline"
-            >
-              {{ $t('PIPELINES.FORM.SAVE') }}
-            </button>
-          </template>
+  <div class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-n-background">
+    <header class="shrink-0 border-b border-n-weak px-5 py-4">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 class="text-xl font-semibold text-n-slate-12">
+            {{ t('PIPELINES.TITLE') }}
+          </h1>
+          <p class="mt-1 text-sm text-n-slate-10">
+            CRM de oportunidades integrado aos contatos e conversas do Chatwoot.
+          </p>
         </div>
-        <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+
+        <div class="flex flex-wrap items-center gap-2">
           <button
-            class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-n-strong bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 outline-none transition-colors hover:bg-n-alpha-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
+            class="inline-flex h-9 items-center gap-2 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2"
             @click="showPipelineForm = !showPipelineForm"
           >
-            <span class="size-4 shrink-0 i-lucide-plus" />
-            {{ $t('PIPELINES.NEW_PIPELINE') }}
+            <span class="i-lucide-plus size-4" />
+            {{ t('PIPELINES.NEW_PIPELINE') }}
           </button>
           <button
-            class="inline-flex size-9 items-center justify-center rounded-lg border border-n-strong bg-n-solid-1 text-n-slate-11 outline-none transition-colors hover:bg-n-alpha-1 hover:text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
-            :title="$t('PIPELINES.SETTINGS')"
-            :aria-label="$t('PIPELINES.SETTINGS')"
+            class="inline-flex h-9 items-center gap-2 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12 hover:bg-n-alpha-2"
             @click="showSettings = true"
           >
-            <span class="size-4 i-lucide-settings" />
+            <span class="i-lucide-settings-2 size-4" />
+            {{ t('PIPELINES.SETTINGS') }}
           </button>
           <button
-            class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-n-brand px-3.5 text-sm font-medium text-white outline-none transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
+            class="inline-flex h-9 items-center gap-2 rounded-lg bg-n-brand px-3 text-sm font-medium text-white"
+            :disabled="!stages.length"
             @click="openCreateDeal()"
           >
-            <span class="size-4 shrink-0 i-lucide-plus" />
-            {{ $t('PIPELINES.ADD_DEAL') }}
+            <span class="i-lucide-plus size-4" />
+            {{ t('PIPELINES.ADD_DEAL') }}
           </button>
         </div>
       </div>
-    </div>
 
-    <div
-      v-if="!uiFlags.isFetching"
-      class="grid w-full min-w-0 shrink-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
-    >
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <select
+          class="h-9 min-w-52 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm font-medium text-n-slate-12"
+          :value="selectedPipeline?.id"
+          @change="selectPipeline($event.target.value)"
+        >
+          <option v-for="pipeline in pipelines" :key="pipeline.id" :value="pipeline.id">
+            {{ pipeline.name }}
+          </option>
+        </select>
+
+        <div v-if="showPipelineForm" class="flex flex-wrap items-center gap-2">
+          <input
+            v-model="newPipelineName"
+            class="h-9 w-52 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12"
+            :placeholder="t('PIPELINES.PIPELINE_NAME')"
+            @keyup.enter="createPipeline"
+          />
+          <label class="flex items-center gap-2 text-xs text-n-slate-11">
+            <input v-model="createBlankPipeline" type="checkbox" />
+            {{ t('PIPELINES.SETTINGS_PANEL.BLANK_PIPELINE') }}
+          </label>
+          <button
+            class="h-9 rounded-lg bg-n-brand px-3 text-sm font-medium text-white"
+            @click="createPipeline"
+          >
+            {{ t('PIPELINES.FORM.SAVE') }}
+          </button>
+        </div>
+
+        <div class="relative ml-auto min-w-56 flex-1 sm:max-w-80">
+          <span
+            class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 i-lucide-search text-n-slate-9"
+          />
+          <input
+            v-model="searchQuery"
+            class="h-9 w-full rounded-lg border border-n-weak bg-n-solid-1 pl-9 pr-3 text-sm text-n-slate-12"
+            :placeholder="t('PIPELINES.SEARCH')"
+          />
+        </div>
+
+        <div class="flex overflow-hidden rounded-lg border border-n-weak">
+          <button
+            class="flex h-9 items-center gap-1.5 px-3 text-xs font-medium"
+            :class="
+              viewMode === 'kanban'
+                ? 'bg-n-brand text-white'
+                : 'bg-n-solid-1 text-n-slate-11'
+            "
+            @click="viewMode = 'kanban'"
+          >
+            <span class="i-lucide-columns-3 size-4" />
+            {{ t('PIPELINES.KANBAN_VIEW') }}
+          </button>
+          <button
+            class="flex h-9 items-center gap-1.5 px-3 text-xs font-medium"
+            :class="
+              viewMode === 'table'
+                ? 'bg-n-brand text-white'
+                : 'bg-n-solid-1 text-n-slate-11'
+            "
+            @click="viewMode = 'table'"
+          >
+            <span class="i-lucide-table-2 size-4" />
+            {{ t('PIPELINES.TABLE_VIEW') }}
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid shrink-0 grid-cols-2 gap-2 border-b border-n-weak p-4 sm:grid-cols-3 xl:grid-cols-6">
       <div
         v-for="card in metricCards"
-        :key="card.key"
-        class="flex min-w-0 flex-col gap-2 rounded-xl border border-n-weak bg-n-solid-2 p-3.5"
+        :key="card.label"
+        class="rounded-xl border border-n-weak bg-n-solid-2 p-3"
       >
-        <div
-          class="flex size-7 shrink-0 items-center justify-center rounded-md"
-          :class="card.iconClass"
-        >
-          <span class="size-3.5" :class="card.icon" />
+        <div class="flex items-center gap-2 text-xs font-medium text-n-slate-10">
+          <span class="size-4 text-n-brand" :class="card.icon" />
+          <span class="truncate">{{ card.label }}</span>
         </div>
-        <div
-          class="truncate text-[11px] font-medium uppercase tracking-wide text-n-slate-11"
-          :title="card.label"
-        >
-          {{ card.label }}
-        </div>
-        <div
-          class="truncate text-lg font-semibold tabular-nums text-n-slate-12"
-          :class="card.valueClass"
-        >
+        <div class="mt-2 truncate text-lg font-semibold text-n-slate-12">
           {{ card.value }}
         </div>
       </div>
     </div>
 
-    <div
-      class="flex min-h-0 w-full min-w-0 flex-1 gap-4 overflow-x-auto overflow-y-hidden pb-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-n-slate-6 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-2"
-      :class="{
-        'opacity-50 pointer-events-none':
-          uiFlags.isFetching || uiFlags.isFetchingDeals,
-      }"
-    >
+    <main class="min-h-0 flex-1 overflow-hidden">
       <div
-        v-for="stage in stages"
-        :key="stage.id"
-        class="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-n-strong bg-n-solid-2"
+        v-if="uiFlags.isFetching || uiFlags.isFetchingDeals"
+        class="flex h-full items-center justify-center text-sm text-n-slate-10"
       >
-        <div
-          class="h-1.5 w-full shrink-0"
-          :style="{ backgroundColor: stage.color }"
-          aria-hidden="true"
-        />
-        <div class="flex items-start justify-between gap-2 px-3 pb-2 pt-3">
-          <div class="flex min-w-0 flex-col gap-0.5">
-            <span class="truncate text-sm font-semibold text-n-slate-12">
-              {{ stage.name }}
-            </span>
-            <span class="text-xs tabular-nums text-n-slate-11">
-              {{ formatMoney(stageTotal(stage.id), analytics.currency) }}
-            </span>
-          </div>
-          <span
-            class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-n-solid-3 px-1.5 text-[11px] font-medium tabular-nums text-n-slate-11"
-          >
-            {{ dealsForStage(stage.id).length }}
-          </span>
-        </div>
-        <Draggable
-          class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2"
-          :model-value="dealsForStage(stage.id)"
-          :group="{ name: 'deals', pull: true, put: true }"
-          item-key="id"
-          :data-stage-id="stage.id"
-          ghost-class="opacity-40"
-          drag-class="shadow-lg"
-          scroll
-          bubble-scroll
-          :scroll-sensitivity="120"
-          :scroll-speed="18"
-          @update:model-value="() => {}"
-          @change="
-            evt =>
-              evt.added &&
-              onDealDrop(stage.id, {
-                item: { dataset: { dealId: evt.added.element.id } },
-              })
-          "
+        Carregando CRM…
+      </div>
+
+      <div
+        v-else-if="viewMode === 'kanban'"
+        class="flex h-full min-w-0 gap-3 overflow-x-auto overflow-y-hidden p-4"
+      >
+        <section
+          v-for="stage in stages"
+          :key="stage.id"
+          class="flex w-[310px] shrink-0 flex-col overflow-hidden rounded-xl border border-n-weak bg-n-solid-2"
+          @dragover.prevent
+          @drop="onDrop(stage.id)"
         >
-          <template #item="{ element }">
-            <button
-              type="button"
-              class="w-full cursor-grab rounded-lg border border-n-weak bg-n-solid-1 p-3 text-left shadow-sm outline-none transition-colors hover:border-n-brand hover:bg-n-alpha-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand active:cursor-grabbing"
-              :data-deal-id="element.id"
-              @click="openEditDeal(element)"
-            >
-              <div class="text-sm font-medium text-n-slate-12">
-                {{ element.title }}
-              </div>
-              <div class="mt-1 text-xs text-n-slate-11">
-                {{ element.contact?.name || '—' }}
-              </div>
-              <div class="mt-2 flex items-center justify-between gap-2 text-xs">
-                <span class="font-semibold tabular-nums text-n-slate-12">
-                  {{ formatMoney(element.value, element.currency) }}
-                </span>
+          <header class="border-b border-n-weak p-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex min-w-0 items-center gap-2">
                 <span
-                  v-if="element.status !== 'open'"
-                  class="rounded px-1.5 py-0.5 text-[10px] uppercase"
-                  :class="
-                    element.status === 'won'
-                      ? 'bg-n-teal-3 text-n-teal-11'
-                      : 'bg-n-ruby-3 text-n-ruby-11'
-                  "
+                  class="size-2.5 shrink-0 rounded-full"
+                  :style="{ backgroundColor: stage.color }"
+                />
+                <h2 class="truncate text-sm font-semibold text-n-slate-12">
+                  {{ stage.name }}
+                </h2>
+              </div>
+              <span class="rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-10">
+                {{ dealsForStage(stage.id).length }}
+              </span>
+            </div>
+            <p class="mt-1 text-xs font-medium text-n-slate-10">
+              {{ formatMoney(stageTotal(stage.id), analytics.currency) }}
+            </p>
+          </header>
+
+          <div class="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
+            <button
+              v-for="deal in dealsForStage(stage.id)"
+              :key="deal.id"
+              draggable="true"
+              class="block w-full rounded-lg border border-n-weak bg-n-solid-1 p-3 text-left shadow-sm transition hover:border-n-brand hover:shadow"
+              @dragstart="onDragStart(deal.id)"
+              @click="openDeal(deal)"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <h3 class="truncate text-sm font-semibold text-n-slate-12">
+                    {{ deal.title }}
+                  </h3>
+                  <p class="mt-0.5 truncate text-xs text-n-slate-10">
+                    {{ deal.contact?.name || 'Sem contato vinculado' }}
+                  </p>
+                </div>
+                <span
+                  class="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                  :class="statusClass(deal.status)"
                 >
-                  {{
-                    element.status === 'won'
-                      ? $t('PIPELINES.STATUS.WON')
-                      : $t('PIPELINES.STATUS.LOST')
-                  }}
+                  {{ statusLabel(deal.status) }}
                 </span>
+              </div>
+
+              <div class="mt-3 flex items-center justify-between gap-2">
+                <span class="text-sm font-semibold text-n-slate-12">
+                  {{ formatMoney(deal.value, deal.currency) }}
+                </span>
+                <span class="text-xs text-n-amber-10">
+                  {{ '★'.repeat(Number(deal.priority_stars) || 0) }}
+                </span>
+              </div>
+
+              <div class="mt-2 flex items-center justify-between gap-2 text-[11px] text-n-slate-10">
+                <span>{{ Number(deal.probability) || 0 }}%</span>
+                <span class="truncate">{{ deal.assignee?.name || 'Sem responsável' }}</span>
               </div>
             </button>
-          </template>
-          <template #footer>
-            <div
-              v-if="!dealsForStage(stage.id).length"
-              class="flex min-h-28 flex-1 items-center justify-center rounded-lg border border-dashed border-n-strong bg-n-alpha-1 px-3 py-6 text-center text-xs text-n-slate-11"
+
+            <button
+              class="flex h-20 w-full items-center justify-center rounded-lg border border-dashed border-n-weak text-xs font-medium text-n-slate-10 hover:border-n-brand hover:text-n-brand"
+              @click="openCreateDeal(stage.id)"
             >
-              {{ $t('PIPELINES.DROP_HERE') }}
-            </div>
-          </template>
-        </Draggable>
-        <div class="p-2 pt-0">
-          <button
-            class="flex h-9 w-full items-center justify-center gap-1 rounded-lg border border-n-strong bg-n-solid-1 text-xs font-medium text-n-slate-11 outline-none transition-colors hover:border-n-brand hover:text-n-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand"
-            @click="openCreateDeal(stage.id)"
-          >
-            <span class="size-3.5 shrink-0 i-lucide-plus" />
-            {{ $t('PIPELINES.ADD_DEAL') }}
-          </button>
+              + {{ t('PIPELINES.ADD_DEAL') }}
+            </button>
+          </div>
+        </section>
+
+        <div
+          v-if="!stages.length"
+          class="flex h-full min-w-full items-center justify-center text-sm text-n-slate-10"
+        >
+          Este funil ainda não possui etapas. Abra as configurações para adicionar a primeira.
         </div>
       </div>
-    </div>
 
-    <!-- Deal form modal -->
+      <div v-else class="h-full overflow-auto p-4">
+        <div class="overflow-hidden rounded-xl border border-n-weak">
+          <table class="w-full min-w-[980px] border-collapse text-left text-sm">
+            <thead class="bg-n-solid-2 text-xs uppercase tracking-wide text-n-slate-10">
+              <tr>
+                <th class="px-4 py-3">Oportunidade</th>
+                <th class="px-4 py-3">Contato</th>
+                <th class="px-4 py-3">Etapa</th>
+                <th class="px-4 py-3">Valor</th>
+                <th class="px-4 py-3">Prob.</th>
+                <th class="px-4 py-3">Responsável</th>
+                <th class="px-4 py-3">Fechamento</th>
+                <th class="px-4 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-n-weak bg-n-solid-1">
+              <tr
+                v-for="deal in filteredDeals"
+                :key="deal.id"
+                class="cursor-pointer hover:bg-n-alpha-1"
+                @click="openDeal(deal)"
+              >
+                <td class="px-4 py-3 font-medium text-n-slate-12">
+                  {{ deal.title }}
+                </td>
+                <td class="px-4 py-3 text-n-slate-11">
+                  {{ deal.contact?.name || '—' }}
+                </td>
+                <td class="px-4 py-3 text-n-slate-11">
+                  {{ selectedStageName(deal) }}
+                </td>
+                <td class="px-4 py-3 font-medium text-n-slate-12">
+                  {{ formatMoney(deal.value, deal.currency) }}
+                </td>
+                <td class="px-4 py-3 text-n-slate-11">
+                  {{ Number(deal.probability) || 0 }}%
+                </td>
+                <td class="px-4 py-3 text-n-slate-11">
+                  {{ deal.assignee?.name || '—' }}
+                </td>
+                <td class="px-4 py-3 text-n-slate-11">
+                  {{ deal.expected_close_date || '—' }}
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    class="rounded-md px-2 py-1 text-xs font-medium"
+                    :class="statusClass(deal.status)"
+                  >
+                    {{ statusLabel(deal.status) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
     <div
       v-if="showDealForm"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      class="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 p-4"
       @click.self="showDealForm = false"
     >
-      <div class="w-full max-w-md rounded-xl bg-n-solid-1 p-5 shadow-xl">
-        <h2 class="mb-4 text-lg font-semibold">
-          {{
-            editingDeal ? $t('PIPELINES.EDIT_DEAL') : $t('PIPELINES.ADD_DEAL')
-          }}
-        </h2>
-        <div class="flex flex-col gap-3">
-          <label class="text-xs">
-            {{ $t('PIPELINES.FORM.TITLE') }}
-            <input
-              v-model="form.title"
-              class="mt-1 w-full rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-            />
+      <section class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-n-background shadow-2xl">
+        <header class="flex items-center justify-between border-b border-n-weak p-4">
+          <h2 class="text-lg font-semibold text-n-slate-12">
+            {{ t('PIPELINES.ADD_DEAL') }}
+          </h2>
+          <button class="size-8 rounded-lg hover:bg-n-alpha-2" @click="showDealForm = false">
+            <span class="i-lucide-x size-4" />
+          </button>
+        </header>
+
+        <div class="grid gap-4 p-5 sm:grid-cols-2">
+          <label class="flex flex-col gap-1.5 sm:col-span-2">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.TITLE') }}</span>
+            <input v-model="form.title" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
           </label>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="text-xs">
-              {{ $t('PIPELINES.FORM.VALUE') }}
-              <input
-                v-model.number="form.value"
-                type="number"
-                class="mt-1 w-full rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-              />
-            </label>
-            <label class="text-xs">
-              {{ $t('PIPELINES.FORM.CURRENCY') }}
-              <input
-                v-model="form.currency"
-                class="mt-1 w-full rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-              />
-            </label>
-          </div>
-          <label class="text-xs">
-            {{ $t('PIPELINES.FORM.STAGE') }}
-            <select
-              v-model="form.pipeline_stage_id"
-              class="mt-1 w-full rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-            >
-              <option v-for="s in stages" :key="s.id" :value="s.id">
-                {{ s.name }}
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.VALUE') }}</span>
+            <input v-model.number="form.value" type="number" min="0" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+          </label>
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.EXPECTED_REVENUE') }}</span>
+            <input v-model.number="form.expected_revenue" type="number" min="0" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+          </label>
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.STAGE') }}</span>
+            <select v-model.number="form.pipeline_stage_id" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
+              <option v-for="stage in stages" :key="stage.id" :value="stage.id">
+                {{ stage.name }}
               </option>
             </select>
           </label>
-          <label class="text-xs">
-            {{ $t('PIPELINES.FORM.ASSIGNEE') }}
-            <select
-              v-model="form.assignee_id"
-              class="mt-1 w-full rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-            >
-              <option :value="null">—</option>
-              <option v-for="a in agents" :key="a.id" :value="a.id">
-                {{ a.name }}
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.PROBABILITY') }} (%)</span>
+            <input v-model.number="form.probability" type="number" min="0" max="100" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+          </label>
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.CONTACT') }}</span>
+            <select v-model.number="form.contact_id" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
+              <option :value="null">Sem contato</option>
+              <option v-for="contact in contacts" :key="contact.id" :value="contact.id">
+                {{ contact.name || contact.email || contact.phone_number || `#${contact.id}` }}
               </option>
             </select>
           </label>
-          <label class="text-xs">
-            {{ $t('PIPELINES.FORM.CONTACT') }}
-            <input
-              v-model.number="form.contact_id"
-              type="number"
-              class="mt-1 w-full rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-            />
-          </label>
-          <label class="text-xs">
-            {{ $t('PIPELINES.FORM.CLOSE_DATE') }}
-            <input
-              v-model="form.expected_close_date"
-              type="date"
-              class="mt-1 w-full rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-            />
-          </label>
-          <label class="text-xs">
-            {{ $t('PIPELINES.FORM.STATUS') }}
-            <select
-              v-model="form.status"
-              class="mt-1 w-full rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-            >
-              <option value="open">{{ $t('PIPELINES.STATUS.OPEN') }}</option>
-              <option value="won">{{ $t('PIPELINES.STATUS.WON') }}</option>
-              <option value="lost">{{ $t('PIPELINES.STATUS.LOST') }}</option>
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.ASSIGNEE') }}</span>
+            <select v-model.number="form.assignee_id" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
+              <option :value="null">Sem responsável</option>
+              <option v-for="agent in agents" :key="agent.id" :value="agent.id">
+                {{ agent.name }}
+              </option>
             </select>
           </label>
-          <label class="text-xs">
-            {{ $t('PIPELINES.FORM.NOTES') }}
-            <textarea
-              v-model="form.notes"
-              rows="3"
-              class="mt-1 w-full rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-            />
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.CLOSE_DATE') }}</span>
+            <input v-model="form.expected_close_date" type="date" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+          </label>
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.PRIORITY') }}</span>
+            <select v-model.number="form.priority_stars" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
+              <option :value="0">—</option>
+              <option :value="1">★</option>
+              <option :value="2">★★</option>
+              <option :value="3">★★★</option>
+            </select>
+          </label>
+
+          <label class="flex flex-col gap-1.5 sm:col-span-2">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.SOURCE') }}</span>
+            <input v-model="form.campaign_source" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+          </label>
+
+          <label class="flex flex-col gap-1.5 sm:col-span-2">
+            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.NOTES') }}</span>
+            <textarea v-model="form.notes" rows="4" class="rounded-lg border border-n-weak bg-n-solid-1 p-3 text-sm" />
           </label>
         </div>
-        <div class="mt-4 flex gap-2">
-          <button
-            class="rounded-md bg-n-brand px-3 py-1.5 text-sm text-white"
-            @click="saveDeal"
-          >
-            {{ $t('PIPELINES.FORM.SAVE') }}
+
+        <footer class="flex justify-end gap-2 border-t border-n-weak p-4">
+          <button class="h-9 rounded-lg border border-n-weak px-3 text-sm" @click="showDealForm = false">
+            {{ t('PIPELINES.FORM.CANCEL') }}
           </button>
-          <button
-            class="rounded-md border border-n-weak px-3 py-1.5 text-sm"
-            @click="showDealForm = false"
-          >
-            {{ $t('PIPELINES.FORM.CANCEL') }}
+          <button class="h-9 rounded-lg bg-n-brand px-4 text-sm font-medium text-white" @click="createDeal">
+            {{ t('PIPELINES.FORM.SAVE') }}
           </button>
-          <button
-            v-if="editingDeal"
-            class="ml-auto rounded-md px-3 py-1.5 text-sm text-red-500"
-            @click="deleteDeal"
-          >
-            {{ $t('PIPELINES.FORM.DELETE') }}
-          </button>
-        </div>
-      </div>
+        </footer>
+      </section>
     </div>
 
-    <!-- Settings modal -->
     <div
-      v-if="showSettings"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      v-if="showSettings && selectedPipeline"
+      class="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 p-4"
       @click.self="showSettings = false"
     >
-      <div class="w-full max-w-lg rounded-xl bg-n-solid-1 p-5 shadow-xl">
-        <h2 class="mb-4 text-lg font-semibold">
-          {{ $t('PIPELINES.SETTINGS') }}
-        </h2>
-        <label class="text-xs">
-          {{ $t('PIPELINES.SETTINGS_PANEL.RENAME') }}
-          <div class="mt-1 flex gap-2">
-            <input
-              v-model="settingsName"
-              class="flex-1 rounded border border-n-weak bg-n-solid-2 px-2 py-1.5"
-            />
-            <button
-              class="rounded bg-n-brand px-3 py-1.5 text-sm text-white"
-              @click="savePipelineName"
-            >
-              {{ $t('PIPELINES.SETTINGS_PANEL.SAVE_STAGE') }}
+      <section class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-n-background shadow-2xl">
+        <header class="flex items-center justify-between border-b border-n-weak p-4">
+          <div>
+            <h2 class="text-lg font-semibold text-n-slate-12">
+              {{ t('PIPELINES.SETTINGS') }}
+            </h2>
+            <p class="text-xs text-n-slate-10">Personalize o funil, suas etapas, cores e probabilidades.</p>
+          </div>
+          <button class="size-8 rounded-lg hover:bg-n-alpha-2" @click="showSettings = false">
+            <span class="i-lucide-x size-4" />
+          </button>
+        </header>
+
+        <div class="space-y-5 p-5">
+          <div class="flex flex-wrap items-end gap-2">
+            <label class="flex min-w-64 flex-1 flex-col gap-1.5">
+              <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.SETTINGS_PANEL.RENAME') }}</span>
+              <input v-model="settingsName" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+            </label>
+            <button class="h-10 rounded-lg border border-n-brand px-4 text-sm font-medium text-n-brand" @click="savePipelineName">
+              {{ t('PIPELINES.FORM.SAVE') }}
             </button>
           </div>
-        </label>
-        <div class="mt-4">
-          <div class="mb-2 flex items-center justify-between">
-            <span class="text-sm font-medium">{{
-              $t('PIPELINES.SETTINGS_PANEL.STAGES')
-            }}</span>
-            <button class="text-sm text-n-brand" @click="addStage">
-              {{ $t('PIPELINES.SETTINGS_PANEL.ADD_STAGE') }}
-            </button>
+
+          <div>
+            <div class="mb-2 flex items-center justify-between">
+              <h3 class="font-semibold text-n-slate-12">{{ t('PIPELINES.SETTINGS_PANEL.STAGES') }}</h3>
+              <button class="h-8 rounded-lg border border-n-weak px-3 text-xs font-medium" @click="addStage">
+                + {{ t('PIPELINES.SETTINGS_PANEL.ADD_STAGE') }}
+              </button>
+            </div>
+
+            <div class="space-y-2">
+              <div
+                v-for="(stage, index) in stageDrafts"
+                :key="stage.id"
+                class="grid gap-2 rounded-lg border border-n-weak bg-n-solid-2 p-3 md:grid-cols-[auto_1fr_110px_90px_auto]"
+              >
+                <div class="flex items-center gap-1">
+                  <button class="size-7 rounded border border-n-weak" :disabled="index === 0" @click="moveStage(index, 'up')">↑</button>
+                  <button class="size-7 rounded border border-n-weak" :disabled="index === stageDrafts.length - 1" @click="moveStage(index, 'down')">↓</button>
+                </div>
+                <input v-model="stage.name" class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+                <input v-model="stage.color" type="color" class="h-9 w-full rounded-lg border border-n-weak bg-n-solid-1 p-1" />
+                <input v-model.number="stage.default_probability" type="number" min="0" max="100" class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-2 text-sm" />
+                <div class="flex items-center justify-end gap-1">
+                  <button class="size-8 rounded border border-n-weak text-n-brand" @click="saveStage(stage)">
+                    <span class="i-lucide-check size-4" />
+                  </button>
+                  <button class="size-8 rounded border border-n-weak text-n-ruby-11" @click="deleteStage(stage)">
+                    <span class="i-lucide-trash-2 size-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div
-            v-for="stage in stages"
-            :key="stage.id"
-            class="mb-2 flex items-center gap-2"
-          >
-            <input v-model="stage.color" type="color" class="h-8 w-8" />
-            <input
-              v-model="stage.name"
-              class="flex-1 rounded border border-n-weak bg-n-solid-2 px-2 py-1"
-            />
-            <button class="text-xs text-n-brand" @click="saveStage(stage)">
-              {{ $t('PIPELINES.SETTINGS_PANEL.SAVE_STAGE') }}
-            </button>
-            <button
-              class="text-xs text-n-ruby-11"
-              :title="$t('PIPELINES.SETTINGS_PANEL.DELETE_STAGE')"
-              :aria-label="$t('PIPELINES.SETTINGS_PANEL.DELETE_STAGE')"
-              @click="removeStage(stage.id)"
-            >
-              <span class="size-3.5 i-lucide-trash-2" />
+
+          <div class="border-t border-n-weak pt-4">
+            <button class="rounded-lg border border-n-ruby-7 px-3 py-2 text-sm font-medium text-n-ruby-11" @click="deletePipeline">
+              {{ t('PIPELINES.SETTINGS_PANEL.DELETE_PIPELINE') }}
             </button>
           </div>
         </div>
-        <button class="mt-4 text-sm text-red-500" @click="deletePipeline">
-          {{ $t('PIPELINES.SETTINGS_PANEL.DELETE_PIPELINE') }}
-        </button>
-      </div>
+      </section>
     </div>
+
+    <DealDetailModal
+      :open="showDealDetail"
+      :deal="selectedDeal"
+      :stages="stages"
+      @close="showDealDetail = false"
+      @updated="refreshDeals"
+    />
   </div>
 </template>
