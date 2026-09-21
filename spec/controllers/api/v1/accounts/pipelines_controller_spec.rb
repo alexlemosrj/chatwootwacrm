@@ -17,7 +17,7 @@ RSpec.describe 'Pipelines API', type: :request do
           headers: agent.create_new_auth_token,
           as: :json
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:success), response.body
       payload = response.parsed_body['payload']
       expect(payload.length).to eq(1)
       expect(payload.first['is_default']).to be(true)
@@ -41,7 +41,7 @@ RSpec.describe 'Pipelines API', type: :request do
              as: :json
       end.to change(account.pipelines, :count).by(1)
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:success), response.body
       created = account.pipelines.find_by!(name: 'Enterprise')
       expect(created.pipeline_stages).to be_empty
     end
@@ -61,7 +61,7 @@ RSpec.describe 'Pipelines API', type: :request do
             headers: agent.create_new_auth_token,
             as: :json
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:success), response.body
       expect(pipeline.pipeline_stages.order(:position).pluck(:id)).to eq(reordered.map(&:id))
     end
 
@@ -76,7 +76,7 @@ RSpec.describe 'Pipelines API', type: :request do
             headers: agent.create_new_auth_token,
             as: :json
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_entity), response.body
     end
   end
 end
