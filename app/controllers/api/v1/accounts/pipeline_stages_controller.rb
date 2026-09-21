@@ -17,16 +17,31 @@ class Api::V1::Accounts::PipelineStagesController < Api::V1::Accounts::BaseContr
 
   def reorder
     stages = params.require(:stages)
-    ids = stages.map { |item| item.require(:id).to_i }
+    requested_ids = stages.map { |item| item.require(:id).to_i }
+    pipeline_ids = @pipeline.pipeline_stages.order(:position).pluck(:id)
 
-    unless ids.sort == @pipeline.pipeline_stages.where(id: ids).pluck(:id).sort
-      render json: { error: 'One or more stages do not belong to this pipeline' }, status: :unprocessable_entity
+    unless requested_ids.sort == pipeline_ids.sort
+      render json: { error: 'Reordering must include every stage from this pipeline exactly once' }, status: :unprocessable_entity
+      return
+    end
+
+    positions = stages.map { |item| item.require(:position).to_i }
+    unless positions.sort == (0...pipeline_ids.length).to_a
+      render json: { error: 'Stage positions must be contiguous and unique' }, status: :unprocessable_entity
       return
     end
 
     PipelineStage.transaction do
+      locked_stages = @pipeline.pipeline_stages.lock.index_by(&:id)
+
+      # Move every row out of the final position range first so swapping
+      # positions cannot violate the unique (pipeline_id, position) index.
+      locked_stages.each_value do |stage|
+        stage.update_columns(position: stage.position + 100_000)
+      end
+
       stages.each do |item|
-        @pipeline.pipeline_stages.find(item.require(:id)).update!(position: item.require(:position))
+        locked_stages.fetch(item.require(:id).to_i).update!(position: item.require(:position).to_i)
       end
     end
 
