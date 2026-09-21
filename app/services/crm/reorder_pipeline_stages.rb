@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class Crm::ReorderPipelineStages
-  Result = Data.define(:success?, :error)
+  Result = Data.define(:success, :error)
 
   def self.call(pipeline, stages)
     new(pipeline, stages).call
@@ -26,7 +26,7 @@ class Crm::ReorderPipelineStages
       end
     end
 
-    Result.new(success?: true, error: nil)
+    Result.new(success: true, error: nil)
   end
 
   private
@@ -54,6 +54,6 @@ class Crm::ReorderPipelineStages
   end
 
   def failure(message)
-    Result.new(success?: false, error: message)
+    Result.new(success: false, error: message)
   end
 end
