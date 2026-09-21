@@ -1,14 +1,27 @@
 class CreateCrmProCore < ActiveRecord::Migration[7.1]
   def change
+    create_pipelines
+    create_pipeline_stages
+    create_deals
+    create_crm_activities
+    create_crm_events
+  end
+
+  private
+
+  def create_pipelines
     create_table :pipelines do |t|
       t.references :account, null: false, foreign_key: true
       t.string :name, null: false
       t.boolean :is_default, null: false, default: false
       t.timestamps
     end
+
     add_index :pipelines, [:account_id, :name]
     add_index :pipelines, :account_id, unique: true, where: 'is_default = TRUE', name: 'index_pipelines_one_default_per_account'
+  end
 
+  def create_pipeline_stages
     create_table :pipeline_stages do |t|
       t.references :pipeline, null: false, foreign_key: true
       t.string :name, null: false
@@ -19,6 +32,7 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
       t.boolean :is_lost, null: false, default: false
       t.timestamps
     end
+
     add_index :pipeline_stages, [:pipeline_id, :position], unique: true
     add_check_constraint :pipeline_stages,
                          'default_probability >= 0 AND default_probability <= 100',
@@ -26,7 +40,9 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
     add_check_constraint :pipeline_stages,
                          'NOT (is_won AND is_lost)',
                          name: 'pipeline_stages_not_won_and_lost'
+  end
 
+  def create_deals
     create_table :deals do |t|
       t.references :account, null: false, foreign_key: true
       t.references :pipeline, null: false, foreign_key: true
@@ -48,6 +64,7 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
       t.jsonb :custom_attributes, null: false, default: {}
       t.timestamps
     end
+
     add_index :deals, [:account_id, :pipeline_id]
     add_index :deals, [:account_id, :status]
     add_index :deals, [:account_id, :assignee_id]
@@ -55,7 +72,9 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
     add_check_constraint :deals, "status IN ('open', 'won', 'lost')", name: 'deals_status_values'
     add_check_constraint :deals, 'probability >= 0 AND probability <= 100', name: 'deals_probability_range'
     add_check_constraint :deals, 'priority_stars >= 0 AND priority_stars <= 3', name: 'deals_priority_stars_range'
+  end
 
+  def create_crm_activities
     create_table :crm_activities do |t|
       t.references :account, null: false, foreign_key: true
       t.references :deal, foreign_key: true
@@ -70,6 +89,7 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
       t.text :notes
       t.timestamps
     end
+
     add_index :crm_activities, [:account_id, :status, :due_at]
     add_index :crm_activities, [:deal_id, :status]
     add_check_constraint :crm_activities,
@@ -78,7 +98,9 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
     add_check_constraint :crm_activities,
                          "status IN ('planned', 'completed', 'cancelled')",
                          name: 'crm_activities_status_values'
+  end
 
+  def create_crm_events
     create_table :crm_events do |t|
       t.references :account, null: false, foreign_key: true
       t.references :deal, foreign_key: true
@@ -88,6 +110,7 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
       t.jsonb :metadata, null: false, default: {}
       t.timestamps
     end
+
     add_index :crm_events, [:account_id, :created_at]
     add_index :crm_events, [:deal_id, :created_at]
   end
