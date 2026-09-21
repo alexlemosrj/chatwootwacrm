@@ -26,7 +26,7 @@ RSpec.describe 'Deals API', type: :request do
              as: :json
       end.to change(account.deals, :count).by(1)
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:success), response.body
       deal = account.deals.last
       expect(deal.contact_id).to eq(contact.id)
       expect(account.crm_events.where(deal: deal, event_type: 'deal_created')).to exist
@@ -47,7 +47,7 @@ RSpec.describe 'Deals API', type: :request do
            headers: agent.create_new_auth_token,
            as: :json
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_entity), response.body
       expect(account.deals.where(title: 'Cross account')).not_to exist
     end
   end
@@ -71,7 +71,7 @@ RSpec.describe 'Deals API', type: :request do
             headers: agent.create_new_auth_token,
             as: :json
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:success), response.body
       expect(deal.reload.pipeline_stage_id).to eq(next_stage.id)
       expect(deal.status).to eq('won')
       expect(account.crm_events.where(deal: deal, event_type: 'stage_changed')).to exist
@@ -93,7 +93,7 @@ RSpec.describe 'Deals API', type: :request do
             headers: agent.create_new_auth_token,
             as: :json
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:success), response.body
       expect(deal.reload.status).to eq('won')
       expect(deal.probability).to eq(won_stage.default_probability)
     end
@@ -116,7 +116,7 @@ RSpec.describe 'Deals API', type: :request do
             headers: agent.create_new_auth_token,
             as: :json
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:success), response.body
       expect(deal.reload.status).to eq('lost')
       expect(deal.probability).to eq(0)
     end
@@ -134,7 +134,7 @@ RSpec.describe 'Deals API', type: :request do
              headers: agent.create_new_auth_token,
              as: :json
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:success), response.body
       expect(Deal.exists?(deal.id)).to be(false)
 
       event = account.crm_events.find_by!(event_type: 'deal_deleted')
@@ -163,7 +163,7 @@ RSpec.describe 'Deals API', type: :request do
           headers: agent.create_new_auth_token,
           as: :json
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:success), response.body
       ids = response.parsed_body['payload'].map { |item| item['id'] }
       expect(ids).to contain_exactly(own_deal.id)
     end
