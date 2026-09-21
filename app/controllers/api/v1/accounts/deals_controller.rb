@@ -56,7 +56,9 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
   end
 
   def apply_stage_defaults!(attributes)
-    stage = Current.account.pipeline_stages.find(attributes[:pipeline_stage_id])
+    stage = PipelineStage.joins(:pipeline)
+                         .where(id: attributes[:pipeline_stage_id], pipelines: { account_id: Current.account.id })
+                         .first!
 
     attributes[:probability] = stage.default_probability if attributes[:probability].blank?
 
