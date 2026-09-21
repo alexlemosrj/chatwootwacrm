@@ -6,6 +6,7 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
     ensure_deals
     ensure_crm_activities
     ensure_crm_events
+    ensure_crm_account_cascades
   end
 
   def down
@@ -196,6 +197,18 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
     add_check_constraint :crm_activities,
                          "status IN ('planned', 'completed', 'cancelled')",
                          name: 'crm_activities_status_values'
+  end
+
+  def ensure_crm_account_cascades
+    replace_foreign_key_with_cascade(:pipelines, :accounts)
+    replace_foreign_key_with_cascade(:deals, :accounts)
+    replace_foreign_key_with_cascade(:crm_activities, :accounts)
+    replace_foreign_key_with_cascade(:crm_events, :accounts)
+  end
+
+  def replace_foreign_key_with_cascade(from_table, to_table)
+    remove_foreign_key from_table, to_table if foreign_key_exists?(from_table, to_table)
+    add_foreign_key from_table, to_table, on_delete: :cascade
   end
 
   def ensure_crm_events
