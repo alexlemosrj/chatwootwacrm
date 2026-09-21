@@ -82,20 +82,20 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
   end
 
   def log_change_events(before, after)
-    if before['pipeline_stage_id'] != after['pipeline_stage_id']
-      create_event!('stage_changed', { from: before['pipeline_stage_id'], to: after['pipeline_stage_id'] })
-    end
-    if before['status'] != after['status']
-      create_event!('status_changed', { from: before['status'], to: after['status'] })
-    end
-    if before['assignee_id'] != after['assignee_id']
-      create_event!('assignment_changed', { from: before['assignee_id'], to: after['assignee_id'] })
-    end
+    log_transition_event('stage_changed', before, after, 'pipeline_stage_id')
+    log_transition_event('status_changed', before, after, 'status')
+    log_transition_event('assignment_changed', before, after, 'assignee_id')
 
     ignored_keys = %w[pipeline_stage_id status assignee_id]
     before_other = before.except(*ignored_keys)
     after_other = after.except(*ignored_keys)
     create_event!('deal_updated', { from: before_other, to: after_other }) if before_other != after_other
+  end
+
+  def log_transition_event(event_type, before, after, key)
+    return if before[key] == after[key]
+
+    create_event!(event_type, { from: before[key], to: after[key] })
   end
 
   def create_event!(event_type, metadata)
