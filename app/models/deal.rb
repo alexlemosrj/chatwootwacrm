@@ -11,7 +11,7 @@ class Deal < ApplicationRecord
   belongs_to :assignee, class_name: 'User', optional: true
 
   has_many :crm_activities, dependent: :destroy
-  has_many :crm_events, dependent: :destroy
+  has_many :crm_events, dependent: :nullify
 
   validates :title, presence: true
   validates :status, inclusion: { in: STATUSES }
