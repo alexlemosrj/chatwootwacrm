@@ -98,7 +98,7 @@
       "CREATE": "Create opportunity",
       "EMPTY": "No opportunities for this contact",
       "OPEN_BOARD": "Open pipelines",
-      "DEFAULT_TITLE": "Opportunity — contact #{id}"
+      "DEFAULT_TITLE": "Opportunity — contact {id}"
     },
     "DESCRIPTION": "Opportunity CRM integrated with Chatwoot contacts and conversations.",
     "LOADING": "Loading CRM…",
@@ -106,7 +106,7 @@
     "EMPTY_CONTACT": "No linked contact",
     "EMPTY_ASSIGNEE": "No assignee",
     "NOT_AVAILABLE": "—",
-    "CONTACT_FALLBACK": "Contact #{id}",
+    "CONTACT_FALLBACK": "Contact {id}",
     "TABLE": {
       "OPPORTUNITY": "Opportunity",
       "CONTACT": "Contact",
@@ -124,7 +124,7 @@
       "THREE": "★★★"
     },
     "DETAIL": {
-      "ID": "CRM · #{id}"
+      "ID": "CRM · {id}"
     },
     "MESSAGES": {
       "DEAL_UPDATED": "Opportunity updated."
