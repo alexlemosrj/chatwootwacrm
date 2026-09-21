@@ -99,11 +99,14 @@ const analytics = computed(() => {
   const weighted = openDeals.reduce((sum, deal) => {
     const expected = Number(deal.expected_revenue) || 0;
     if (expected > 0) return sum + expected;
-    return sum + (Number(deal.value) || 0) * ((Number(deal.probability) || 0) / 100);
+    return (
+      sum + (Number(deal.value) || 0) * ((Number(deal.probability) || 0) / 100)
+    );
   }, 0);
   const count = openDeals.length;
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000;
+  const monthStart =
+    new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000;
   const won = deals.value.filter(
     deal => deal.status === 'won' && Number(deal.updated_at) >= monthStart
   ).length;
@@ -165,7 +168,8 @@ const resetDealForm = stageId => {
     currency: 'BRL',
     expected_revenue: 0,
     probability:
-      stages.value.find(stage => stage.id === stageId)?.default_probability || 0,
+      stages.value.find(stage => stage.id === stageId)?.default_probability ||
+      0,
     priority_stars: 0,
     pipeline_stage_id: stageId || stages.value[0]?.id || null,
     contact_id: null,
@@ -409,7 +413,9 @@ const contactOptionLabel = contact =>
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-n-background">
+  <div
+    class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-n-background"
+  >
     <header class="shrink-0 border-b border-n-weak px-5 py-4">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -453,7 +459,11 @@ const contactOptionLabel = contact =>
           :value="selectedPipeline?.id"
           @change="selectPipeline($event.target.value)"
         >
-          <option v-for="pipeline in pipelines" :key="pipeline.id" :value="pipeline.id">
+          <option
+            v-for="pipeline in pipelines"
+            :key="pipeline.id"
+            :value="pipeline.id"
+          >
             {{ pipeline.name }}
           </option>
         </select>
@@ -517,13 +527,17 @@ const contactOptionLabel = contact =>
       </div>
     </header>
 
-    <div class="grid shrink-0 grid-cols-2 gap-2 border-b border-n-weak p-4 sm:grid-cols-3 xl:grid-cols-6">
+    <div
+      class="grid shrink-0 grid-cols-2 gap-2 border-b border-n-weak p-4 sm:grid-cols-3 xl:grid-cols-6"
+    >
       <div
         v-for="card in metricCards"
         :key="card.label"
         class="rounded-xl border border-n-weak bg-n-solid-2 p-3"
       >
-        <div class="flex items-center gap-2 text-xs font-medium text-n-slate-10">
+        <div
+          class="flex items-center gap-2 text-xs font-medium text-n-slate-10"
+        >
           <span class="size-4 text-n-brand" :class="card.icon" />
           <span class="truncate">{{ card.label }}</span>
         </div>
@@ -563,7 +577,9 @@ const contactOptionLabel = contact =>
                   {{ stage.name }}
                 </h2>
               </div>
-              <span class="rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-10">
+              <span
+                class="rounded-full bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-10"
+              >
                 {{ dealsForStage(stage.id).length }}
               </span>
             </div>
@@ -607,7 +623,9 @@ const contactOptionLabel = contact =>
                 </span>
               </div>
 
-              <div class="mt-2 flex items-center justify-between gap-2 text-[11px] text-n-slate-10">
+              <div
+                class="mt-2 flex items-center justify-between gap-2 text-[11px] text-n-slate-10"
+              >
                 <span>{{ Number(deal.probability) || 0 }}%</span>
                 <span class="truncate">{{ assigneeDisplay(deal) }}</span>
               </div>
@@ -634,13 +652,19 @@ const contactOptionLabel = contact =>
       <div v-else class="h-full overflow-auto p-4">
         <div class="overflow-hidden rounded-xl border border-n-weak">
           <table class="w-full min-w-[980px] border-collapse text-left text-sm">
-            <thead class="bg-n-solid-2 text-xs uppercase tracking-wide text-n-slate-10">
+            <thead
+              class="bg-n-solid-2 text-xs uppercase tracking-wide text-n-slate-10"
+            >
               <tr>
-                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.OPPORTUNITY') }}</th>
+                <th class="px-4 py-3">
+                  {{ t('PIPELINES.TABLE.OPPORTUNITY') }}
+                </th>
                 <th class="px-4 py-3">{{ t('PIPELINES.TABLE.CONTACT') }}</th>
                 <th class="px-4 py-3">{{ t('PIPELINES.TABLE.STAGE') }}</th>
                 <th class="px-4 py-3">{{ t('PIPELINES.TABLE.VALUE') }}</th>
-                <th class="px-4 py-3">{{ t('PIPELINES.TABLE.PROBABILITY') }}</th>
+                <th class="px-4 py-3">
+                  {{ t('PIPELINES.TABLE.PROBABILITY') }}
+                </th>
                 <th class="px-4 py-3">{{ t('PIPELINES.TABLE.ASSIGNEE') }}</th>
                 <th class="px-4 py-3">{{ t('PIPELINES.TABLE.CLOSE_DATE') }}</th>
                 <th class="px-4 py-3">{{ t('PIPELINES.TABLE.STATUS') }}</th>
@@ -694,35 +718,66 @@ const contactOptionLabel = contact =>
       class="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 p-4"
       @click.self="showDealForm = false"
     >
-      <section class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-n-background shadow-2xl">
-        <header class="flex items-center justify-between border-b border-n-weak p-4">
+      <section
+        class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-n-background shadow-2xl"
+      >
+        <header
+          class="flex items-center justify-between border-b border-n-weak p-4"
+        >
           <h2 class="text-lg font-semibold text-n-slate-12">
             {{ t('PIPELINES.ADD_DEAL') }}
           </h2>
-          <button class="size-8 rounded-lg hover:bg-n-alpha-2" @click="showDealForm = false">
+          <button
+            class="size-8 rounded-lg hover:bg-n-alpha-2"
+            @click="showDealForm = false"
+          >
             <span class="i-lucide-x size-4" />
           </button>
         </header>
 
         <div class="grid gap-4 p-5 sm:grid-cols-2">
           <label class="flex flex-col gap-1.5 sm:col-span-2">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.TITLE') }}</span>
-            <input v-model="form.title" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.TITLE')
+            }}</span>
+            <input
+              v-model="form.title"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            />
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.VALUE') }}</span>
-            <input v-model.number="form.value" type="number" min="0" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.VALUE')
+            }}</span>
+            <input
+              v-model.number="form.value"
+              type="number"
+              min="0"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            />
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.EXPECTED_REVENUE') }}</span>
-            <input v-model.number="form.expected_revenue" type="number" min="0" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.EXPECTED_REVENUE')
+            }}</span>
+            <input
+              v-model.number="form.expected_revenue"
+              type="number"
+              min="0"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            />
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.STAGE') }}</span>
-            <select v-model.number="form.pipeline_stage_id" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.STAGE')
+            }}</span>
+            <select
+              v-model.number="form.pipeline_stage_id"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            >
               <option v-for="stage in stages" :key="stage.id" :value="stage.id">
                 {{ stage.name }}
               </option>
@@ -730,23 +785,45 @@ const contactOptionLabel = contact =>
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.PROBABILITY') }} (%)</span>
-            <input v-model.number="form.probability" type="number" min="0" max="100" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+            <span class="text-xs font-medium text-n-slate-11"
+              >{{ t('PIPELINES.FORM.PROBABILITY') }} (%)</span
+            >
+            <input
+              v-model.number="form.probability"
+              type="number"
+              min="0"
+              max="100"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            />
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.CONTACT') }}</span>
-            <select v-model.number="form.contact_id" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.CONTACT')
+            }}</span>
+            <select
+              v-model.number="form.contact_id"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            >
               <option :value="null">{{ t('PIPELINES.EMPTY_CONTACT') }}</option>
-              <option v-for="contact in contacts" :key="contact.id" :value="contact.id">
+              <option
+                v-for="contact in contacts"
+                :key="contact.id"
+                :value="contact.id"
+              >
                 {{ contactOptionLabel(contact) }}
               </option>
             </select>
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.ASSIGNEE') }}</span>
-            <select v-model.number="form.assignee_id" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.ASSIGNEE')
+            }}</span>
+            <select
+              v-model.number="form.assignee_id"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            >
               <option :value="null">{{ t('PIPELINES.EMPTY_ASSIGNEE') }}</option>
               <option v-for="agent in agents" :key="agent.id" :value="agent.id">
                 {{ agent.name }}
@@ -755,13 +832,24 @@ const contactOptionLabel = contact =>
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.CLOSE_DATE') }}</span>
-            <input v-model="form.expected_close_date" type="date" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.CLOSE_DATE')
+            }}</span>
+            <input
+              v-model="form.expected_close_date"
+              type="date"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            />
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.PRIORITY') }}</span>
-            <select v-model.number="form.priority_stars" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm">
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.PRIORITY')
+            }}</span>
+            <select
+              v-model.number="form.priority_stars"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            >
               <option :value="0">{{ t('PIPELINES.PRIORITY.NONE') }}</option>
               <option :value="1">{{ t('PIPELINES.PRIORITY.ONE') }}</option>
               <option :value="2">{{ t('PIPELINES.PRIORITY.TWO') }}</option>
@@ -770,21 +858,38 @@ const contactOptionLabel = contact =>
           </label>
 
           <label class="flex flex-col gap-1.5 sm:col-span-2">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.SOURCE') }}</span>
-            <input v-model="form.campaign_source" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.SOURCE')
+            }}</span>
+            <input
+              v-model="form.campaign_source"
+              class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+            />
           </label>
 
           <label class="flex flex-col gap-1.5 sm:col-span-2">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.NOTES') }}</span>
-            <textarea v-model="form.notes" rows="4" class="rounded-lg border border-n-weak bg-n-solid-1 p-3 text-sm" />
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.NOTES')
+            }}</span>
+            <textarea
+              v-model="form.notes"
+              rows="4"
+              class="rounded-lg border border-n-weak bg-n-solid-1 p-3 text-sm"
+            />
           </label>
         </div>
 
         <footer class="flex justify-end gap-2 border-t border-n-weak p-4">
-          <button class="h-9 rounded-lg border border-n-weak px-3 text-sm" @click="showDealForm = false">
+          <button
+            class="h-9 rounded-lg border border-n-weak px-3 text-sm"
+            @click="showDealForm = false"
+          >
             {{ t('PIPELINES.FORM.CANCEL') }}
           </button>
-          <button class="h-9 rounded-lg bg-n-brand px-4 text-sm font-medium text-white" @click="createDeal">
+          <button
+            class="h-9 rounded-lg bg-n-brand px-4 text-sm font-medium text-white"
+            @click="createDeal"
+          >
             {{ t('PIPELINES.FORM.SAVE') }}
           </button>
         </footer>
@@ -796,15 +901,24 @@ const contactOptionLabel = contact =>
       class="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 p-4"
       @click.self="showSettings = false"
     >
-      <section class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-n-background shadow-2xl">
-        <header class="flex items-center justify-between border-b border-n-weak p-4">
+      <section
+        class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-n-background shadow-2xl"
+      >
+        <header
+          class="flex items-center justify-between border-b border-n-weak p-4"
+        >
           <div>
             <h2 class="text-lg font-semibold text-n-slate-12">
               {{ t('PIPELINES.SETTINGS') }}
             </h2>
-            <p class="text-xs text-n-slate-10">{{ t('PIPELINES.SETTINGS_PANEL.DESCRIPTION') }}</p>
+            <p class="text-xs text-n-slate-10">
+              {{ t('PIPELINES.SETTINGS_PANEL.DESCRIPTION') }}
+            </p>
           </div>
-          <button class="size-8 rounded-lg hover:bg-n-alpha-2" @click="showSettings = false">
+          <button
+            class="size-8 rounded-lg hover:bg-n-alpha-2"
+            @click="showSettings = false"
+          >
             <span class="i-lucide-x size-4" />
           </button>
         </header>
@@ -812,18 +926,31 @@ const contactOptionLabel = contact =>
         <div class="space-y-5 p-5">
           <div class="flex flex-wrap items-end gap-2">
             <label class="flex min-w-64 flex-1 flex-col gap-1.5">
-              <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.SETTINGS_PANEL.RENAME') }}</span>
-              <input v-model="settingsName" class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
+              <span class="text-xs font-medium text-n-slate-11">{{
+                t('PIPELINES.SETTINGS_PANEL.RENAME')
+              }}</span>
+              <input
+                v-model="settingsName"
+                class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+              />
             </label>
-            <button class="h-10 rounded-lg border border-n-brand px-4 text-sm font-medium text-n-brand" @click="savePipelineName">
+            <button
+              class="h-10 rounded-lg border border-n-brand px-4 text-sm font-medium text-n-brand"
+              @click="savePipelineName"
+            >
               {{ t('PIPELINES.FORM.SAVE') }}
             </button>
           </div>
 
           <div>
             <div class="mb-2 flex items-center justify-between">
-              <h3 class="font-semibold text-n-slate-12">{{ t('PIPELINES.SETTINGS_PANEL.STAGES') }}</h3>
-              <button class="h-8 rounded-lg border border-n-weak px-3 text-xs font-medium" @click="addStage">
+              <h3 class="font-semibold text-n-slate-12">
+                {{ t('PIPELINES.SETTINGS_PANEL.STAGES') }}
+              </h3>
+              <button
+                class="h-8 rounded-lg border border-n-weak px-3 text-xs font-medium"
+                @click="addStage"
+              >
                 <span class="i-lucide-plus size-4" />
                 {{ t('PIPELINES.SETTINGS_PANEL.ADD_STAGE') }}
               </button>
@@ -836,17 +963,48 @@ const contactOptionLabel = contact =>
                 class="grid gap-2 rounded-lg border border-n-weak bg-n-solid-2 p-3 md:grid-cols-[auto_1fr_110px_90px_auto]"
               >
                 <div class="flex items-center gap-1">
-                  <button class="size-7 rounded border border-n-weak" :disabled="index === 0" @click="moveStage(index, 'up')"><span class="i-lucide-arrow-up size-4" /></button>
-                  <button class="size-7 rounded border border-n-weak" :disabled="index === stageDrafts.length - 1" @click="moveStage(index, 'down')"><span class="i-lucide-arrow-down size-4" /></button>
+                  <button
+                    class="size-7 rounded border border-n-weak"
+                    :disabled="index === 0"
+                    @click="moveStage(index, 'up')"
+                  >
+                    <span class="i-lucide-arrow-up size-4" />
+                  </button>
+                  <button
+                    class="size-7 rounded border border-n-weak"
+                    :disabled="index === stageDrafts.length - 1"
+                    @click="moveStage(index, 'down')"
+                  >
+                    <span class="i-lucide-arrow-down size-4" />
+                  </button>
                 </div>
-                <input v-model="stage.name" class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm" />
-                <input v-model="stage.color" type="color" class="h-9 w-full rounded-lg border border-n-weak bg-n-solid-1 p-1" />
-                <input v-model.number="stage.default_probability" type="number" min="0" max="100" class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-2 text-sm" />
+                <input
+                  v-model="stage.name"
+                  class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm"
+                />
+                <input
+                  v-model="stage.color"
+                  type="color"
+                  class="h-9 w-full rounded-lg border border-n-weak bg-n-solid-1 p-1"
+                />
+                <input
+                  v-model.number="stage.default_probability"
+                  type="number"
+                  min="0"
+                  max="100"
+                  class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-2 text-sm"
+                />
                 <div class="flex items-center justify-end gap-1">
-                  <button class="size-8 rounded border border-n-weak text-n-brand" @click="saveStage(stage)">
+                  <button
+                    class="size-8 rounded border border-n-weak text-n-brand"
+                    @click="saveStage(stage)"
+                  >
                     <span class="i-lucide-check size-4" />
                   </button>
-                  <button class="size-8 rounded border border-n-weak text-n-ruby-11" @click="deleteStage(stage)">
+                  <button
+                    class="size-8 rounded border border-n-weak text-n-ruby-11"
+                    @click="deleteStage(stage)"
+                  >
                     <span class="i-lucide-trash-2 size-4" />
                   </button>
                 </div>
@@ -855,7 +1013,10 @@ const contactOptionLabel = contact =>
           </div>
 
           <div class="border-t border-n-weak pt-4">
-            <button class="rounded-lg border border-n-ruby-7 px-3 py-2 text-sm font-medium text-n-ruby-11" @click="deletePipeline">
+            <button
+              class="rounded-lg border border-n-ruby-7 px-3 py-2 text-sm font-medium text-n-ruby-11"
+              @click="deletePipeline"
+            >
               {{ t('PIPELINES.SETTINGS_PANEL.DELETE_PIPELINE') }}
             </button>
           </div>

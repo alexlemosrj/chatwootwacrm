@@ -29,7 +29,8 @@ export const getters = {
   getUIFlags: _state => _state.uiFlags,
   getDealsByStage: _state => stageId =>
     _state.deals.filter(d => d.pipeline_stage_id === stageId),
-  getActivitiesForDeal: _state => dealId => _state.activitiesByDeal[dealId] || [],
+  getActivitiesForDeal: _state => dealId =>
+    _state.activitiesByDeal[dealId] || [],
   getEventsForDeal: _state => dealId => _state.eventsByDeal[dealId] || [],
 };
 
@@ -182,7 +183,8 @@ export const actions = {
 
   async createActivity({ dispatch }, activity) {
     const response = await CrmActivitiesAPI.create({ crm_activity: activity });
-    if (activity.deal_id) await dispatch('fetchDealActivities', activity.deal_id);
+    if (activity.deal_id)
+      await dispatch('fetchDealActivities', activity.deal_id);
     return response.data;
   },
 
@@ -229,7 +231,9 @@ export const mutations = {
     if (index !== -1) _state.deals[index] = data;
   },
   [types.DELETE_DEAL](_state, id) {
-    _state.deals = _state.deals.filter(deal => deal.id !== Number(id) && deal.id !== id);
+    _state.deals = _state.deals.filter(
+      deal => deal.id !== Number(id) && deal.id !== id
+    );
   },
   [types.SET_CRM_ACTIVITIES_FOR_DEAL](_state, { dealId, records }) {
     _state.activitiesByDeal = {

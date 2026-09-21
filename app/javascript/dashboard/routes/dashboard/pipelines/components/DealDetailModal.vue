@@ -103,7 +103,11 @@ const save = async () => {
     emit('updated');
     useAlert(t('PIPELINES.MESSAGES.DEAL_UPDATED'));
   } catch (error) {
-    useAlert(error?.response?.data?.message || error.message || t('PIPELINES.ERRORS.SAVE_DEAL'));
+    useAlert(
+      error?.response?.data?.message ||
+        error.message ||
+        t('PIPELINES.ERRORS.SAVE_DEAL')
+    );
   } finally {
     saving.value = false;
   }
@@ -201,11 +205,17 @@ const activityTypeLabel = type => {
     <section
       class="flex h-full w-full max-w-6xl flex-col bg-n-background shadow-2xl lg:flex-row"
     >
-      <div class="flex min-w-0 flex-1 flex-col overflow-y-auto border-r border-n-weak">
-        <header class="sticky top-0 z-10 border-b border-n-weak bg-n-background/95 p-4 backdrop-blur">
+      <div
+        class="flex min-w-0 flex-1 flex-col overflow-y-auto border-r border-n-weak"
+      >
+        <header
+          class="sticky top-0 z-10 border-b border-n-weak bg-n-background/95 p-4 backdrop-blur"
+        >
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p class="text-xs font-medium uppercase tracking-wide text-n-slate-10">
+              <p
+                class="text-xs font-medium uppercase tracking-wide text-n-slate-10"
+              >
                 {{ t('PIPELINES.DETAIL.ID', { id: deal.id }) }}
               </p>
               <h2 class="text-xl font-semibold text-n-slate-12">
@@ -261,7 +271,9 @@ const activityTypeLabel = type => {
 
         <div class="grid gap-5 p-5 md:grid-cols-2">
           <label class="flex flex-col gap-1.5 md:col-span-2">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.TITLE') }}</span>
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.TITLE')
+            }}</span>
             <input
               v-model="form.title"
               class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
@@ -269,7 +281,9 @@ const activityTypeLabel = type => {
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.VALUE') }}</span>
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.VALUE')
+            }}</span>
             <input
               v-model.number="form.value"
               type="number"
@@ -280,7 +294,9 @@ const activityTypeLabel = type => {
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.EXPECTED_REVENUE') }}</span>
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.EXPECTED_REVENUE')
+            }}</span>
             <input
               v-model.number="form.expected_revenue"
               type="number"
@@ -291,7 +307,9 @@ const activityTypeLabel = type => {
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.PROBABILITY') }} (%)</span>
+            <span class="text-xs font-medium text-n-slate-11"
+              >{{ t('PIPELINES.FORM.PROBABILITY') }} (%)</span
+            >
             <input
               v-model.number="form.probability"
               type="number"
@@ -302,7 +320,9 @@ const activityTypeLabel = type => {
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.CLOSE_DATE') }}</span>
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.CLOSE_DATE')
+            }}</span>
             <input
               v-model="form.expected_close_date"
               type="date"
@@ -311,7 +331,9 @@ const activityTypeLabel = type => {
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.PRIORITY') }}</span>
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.PRIORITY')
+            }}</span>
             <select
               v-model.number="form.priority_stars"
               class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
@@ -324,7 +346,9 @@ const activityTypeLabel = type => {
           </label>
 
           <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.SOURCE') }}</span>
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.SOURCE')
+            }}</span>
             <input
               v-model="form.campaign_source"
               class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
@@ -332,7 +356,9 @@ const activityTypeLabel = type => {
           </label>
 
           <label class="flex flex-col gap-1.5 md:col-span-2">
-            <span class="text-xs font-medium text-n-slate-11">{{ t('PIPELINES.FORM.NOTES') }}</span>
+            <span class="text-xs font-medium text-n-slate-11">{{
+              t('PIPELINES.FORM.NOTES')
+            }}</span>
             <textarea
               v-model="form.notes"
               rows="5"
@@ -352,9 +378,13 @@ const activityTypeLabel = type => {
         </div>
       </div>
 
-      <aside class="flex w-full shrink-0 flex-col overflow-y-auto bg-n-solid-2 lg:w-[380px]">
+      <aside
+        class="flex w-full shrink-0 flex-col overflow-y-auto bg-n-solid-2 lg:w-[380px]"
+      >
         <div class="border-b border-n-weak p-4">
-          <h3 class="font-semibold text-n-slate-12">{{ t('PIPELINES.ACTIVITIES.TITLE') }}</h3>
+          <h3 class="font-semibold text-n-slate-12">
+            {{ t('PIPELINES.ACTIVITIES.TITLE') }}
+          </h3>
           <div class="mt-3 grid gap-2">
             <input
               v-model="activityForm.title"
@@ -366,12 +396,24 @@ const activityTypeLabel = type => {
                 v-model="activityForm.activity_type"
                 class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-2 text-sm text-n-slate-12"
               >
-                <option value="followup">{{ t('PIPELINES.ACTIVITIES.TYPES.FOLLOWUP') }}</option>
-                <option value="call">{{ t('PIPELINES.ACTIVITIES.TYPES.CALL') }}</option>
-                <option value="whatsapp">{{ t('PIPELINES.ACTIVITIES.TYPES.WHATSAPP') }}</option>
-                <option value="meeting">{{ t('PIPELINES.ACTIVITIES.TYPES.MEETING') }}</option>
-                <option value="task">{{ t('PIPELINES.ACTIVITIES.TYPES.TASK') }}</option>
-                <option value="email">{{ t('PIPELINES.ACTIVITIES.TYPES.EMAIL') }}</option>
+                <option value="followup">
+                  {{ t('PIPELINES.ACTIVITIES.TYPES.FOLLOWUP') }}
+                </option>
+                <option value="call">
+                  {{ t('PIPELINES.ACTIVITIES.TYPES.CALL') }}
+                </option>
+                <option value="whatsapp">
+                  {{ t('PIPELINES.ACTIVITIES.TYPES.WHATSAPP') }}
+                </option>
+                <option value="meeting">
+                  {{ t('PIPELINES.ACTIVITIES.TYPES.MEETING') }}
+                </option>
+                <option value="task">
+                  {{ t('PIPELINES.ACTIVITIES.TYPES.TASK') }}
+                </option>
+                <option value="email">
+                  {{ t('PIPELINES.ACTIVITIES.TYPES.EMAIL') }}
+                </option>
               </select>
               <input
                 v-model="activityForm.due_at"
@@ -412,15 +454,21 @@ const activityTypeLabel = type => {
               <span class="block truncate text-sm font-medium text-n-slate-12">
                 {{ activity.title }}
               </span>
-              <span class="mt-1 block text-xs" :class="activityStateClass(activity)">
-                {{ activityTypeLabel(activity.activity_type) }} · {{ formatDate(activity.due_at) }}
+              <span
+                class="mt-1 block text-xs"
+                :class="activityStateClass(activity)"
+              >
+                {{ activityTypeLabel(activity.activity_type) }} ·
+                {{ formatDate(activity.due_at) }}
               </span>
             </span>
           </button>
         </div>
 
         <div class="p-4">
-          <h3 class="mb-3 font-semibold text-n-slate-12">{{ t('PIPELINES.HISTORY.TITLE') }}</h3>
+          <h3 class="mb-3 font-semibold text-n-slate-12">
+            {{ t('PIPELINES.HISTORY.TITLE') }}
+          </h3>
           <div v-if="!events.length" class="text-xs text-n-slate-10">
             {{ t('PIPELINES.HISTORY.EMPTY') }}
           </div>
@@ -429,12 +477,15 @@ const activityTypeLabel = type => {
             :key="event.id"
             class="relative border-l border-n-weak pb-4 pl-4 last:pb-0"
           >
-            <span class="absolute -left-1 top-1 size-2 rounded-full bg-n-brand" />
+            <span
+              class="absolute -left-1 top-1 size-2 rounded-full bg-n-brand"
+            />
             <p class="text-sm font-medium text-n-slate-12">
               {{ eventTitle(event) }}
             </p>
             <p class="mt-0.5 text-xs text-n-slate-10">
-              {{ event.actor?.name || t('PIPELINES.HISTORY.SYSTEM') }} · {{ formatDate(event.created_at * 1000) }}
+              {{ event.actor?.name || t('PIPELINES.HISTORY.SYSTEM') }} ·
+              {{ formatDate(event.created_at * 1000) }}
             </p>
           </div>
         </div>

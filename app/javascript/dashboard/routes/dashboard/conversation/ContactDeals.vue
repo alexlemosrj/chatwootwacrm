@@ -50,13 +50,13 @@ const createDeal = async () => {
   const pipeline = store.getters['pipelines/getSelectedPipeline'];
   if (!pipeline?.stages?.length) return;
   await store.dispatch('pipelines/createDeal', {
-    title: t('PIPELINES.CONTACT_SIDEBAR.DEFAULT_TITLE', { id: props.contactId }),
+    title: t('PIPELINES.CONTACT_SIDEBAR.DEFAULT_TITLE', {
+      id: props.contactId,
+    }),
     pipeline_id: pipeline.id,
     pipeline_stage_id: pipeline.stages[0].id,
     contact_id: Number(props.contactId),
-    conversation_id: props.conversationId
-      ? Number(props.conversationId)
-      : null,
+    conversation_id: props.conversationId ? Number(props.conversationId) : null,
     value: 0,
     currency: 'BRL',
     status: 'open',
@@ -91,7 +91,8 @@ const hasDeals = computed(() => deals.value.length > 0);
     >
       <div class="font-medium">{{ deal.title }}</div>
       <div class="text-n-slate-11">
-        {{ formatMoney(deal.value, deal.currency) }} · {{ t(`PIPELINES.STATUS.${deal.status.toUpperCase()}`) }}
+        {{ formatMoney(deal.value, deal.currency) }} ·
+        {{ t(`PIPELINES.STATUS.${deal.status.toUpperCase()}`) }}
       </div>
     </button>
     <div class="flex gap-2">
