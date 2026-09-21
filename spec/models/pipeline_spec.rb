@@ -20,7 +20,10 @@ RSpec.describe Pipeline do
       title: 'Negócio ativo'
     )
 
+    stage_ids = pipeline.pipeline_stages.pluck(:id)
+
     expect(pipeline.destroy).to be(false)
     expect(pipeline.errors[:base]).to be_present
+    expect(PipelineStage.where(id: stage_ids).count).to eq(stage_ids.length)
   end
 end
