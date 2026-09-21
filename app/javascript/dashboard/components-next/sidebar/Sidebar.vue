@@ -594,6 +594,13 @@ const menuItems = computed(() => {
         ]
       : []),
     {
+      name: 'Pipelines',
+      label: t('PIPELINES.SIDEBAR'),
+      icon: 'i-lucide-columns-3',
+      to: accountScopedRoute('pipelines_index'),
+      activeOn: ['pipelines_index'],
+    },
+    {
       name: 'Contacts',
       label: t('SIDEBAR.CONTACTS'),
       icon: 'i-lucide-contact',
