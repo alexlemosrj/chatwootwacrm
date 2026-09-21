@@ -19,7 +19,6 @@ class Api::V1::Accounts::CrmActivitiesController < Api::V1::Accounts::BaseContro
 
   def update
     @crm_activity.update!(activity_params)
-    @crm_activity.update!(completed_at: Time.current) if @crm_activity.status == 'completed' && @crm_activity.completed_at.blank?
     log_event!('activity_updated')
   end
 
