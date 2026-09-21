@@ -19,7 +19,7 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
       t.boolean :is_lost, null: false, default: false
       t.timestamps
     end
-    add_index :pipeline_stages, [:pipeline_id, :position]
+    add_index :pipeline_stages, [:pipeline_id, :position], unique: true
     add_check_constraint :pipeline_stages,
                          'default_probability >= 0 AND default_probability <= 100',
                          name: 'pipeline_stages_probability_range'
