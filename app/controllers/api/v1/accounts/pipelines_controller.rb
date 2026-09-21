@@ -51,7 +51,7 @@ class Api::V1::Accounts::PipelinesController < Api::V1::Accounts::BaseController
 
   def set_as_default!(pipeline)
     Current.account.pipelines.transaction do
-      Current.account.pipelines.where.not(id: pipeline.id).update_all(is_default: false)
+      Current.account.pipelines.where.not(id: pipeline.id).find_each { |item| item.update!(is_default: false) }
       pipeline.update!(is_default: true) unless pipeline.is_default?
     end
   end
