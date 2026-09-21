@@ -17,7 +17,7 @@ class Api::V1::Accounts::PipelineStagesController < Api::V1::Accounts::BaseContr
 
   def reorder
     result = Crm::ReorderPipelineStages.call(@pipeline, params.require(:stages))
-    unless result.success?
+    unless result.success
       render json: { error: result.error }, status: :unprocessable_entity
       return
     end
