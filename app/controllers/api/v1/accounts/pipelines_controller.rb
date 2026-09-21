@@ -10,9 +10,14 @@ class Api::V1::Accounts::PipelinesController < Api::V1::Accounts::BaseController
   def show; end
 
   def create
-    @pipeline = Current.account.pipelines.create!(pipeline_params.except(:is_default))
-    Pipeline::DEFAULT_STAGES.each { |attributes| @pipeline.pipeline_stages.create!(attributes) }
-    set_as_default!(@pipeline) if ActiveModel::Type::Boolean.new.cast(pipeline_params[:is_default])
+    attributes = pipeline_params
+    @pipeline = Current.account.pipelines.create!(attributes.except(:is_default, :with_default_stages))
+
+    with_default_stages = attributes[:with_default_stages].nil? ||
+                          ActiveModel::Type::Boolean.new.cast(attributes[:with_default_stages])
+    Pipeline::DEFAULT_STAGES.each { |stage_attributes| @pipeline.pipeline_stages.create!(stage_attributes) } if with_default_stages
+
+    set_as_default!(@pipeline) if ActiveModel::Type::Boolean.new.cast(attributes[:is_default])
     @pipeline.reload
   end
 
@@ -41,7 +46,7 @@ class Api::V1::Accounts::PipelinesController < Api::V1::Accounts::BaseController
   end
 
   def pipeline_params
-    params.require(:pipeline).permit(:name, :is_default)
+    params.require(:pipeline).permit(:name, :is_default, :with_default_stages)
   end
 
   def set_as_default!(pipeline)
