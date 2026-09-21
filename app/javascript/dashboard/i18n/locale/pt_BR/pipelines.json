@@ -53,7 +53,8 @@
       "DELETE_STAGE": "Excluir etapa",
       "DELETE_PIPELINE": "Excluir funil",
       "SAVE_STAGE": "Salvar",
-      "BLANK_PIPELINE": "Criar funil em branco"
+      "BLANK_PIPELINE": "Criar funil em branco",
+      "DESCRIPTION": "Personalize o funil, suas etapas, cores e probabilidades."
     },
     "ACTIVITIES": {
       "TITLE": "Atividades",
@@ -61,10 +62,30 @@
       "OVERDUE": "Atrasada",
       "TODAY": "Hoje",
       "PLANNED": "Planejada",
-      "COMPLETED": "Concluída"
+      "COMPLETED": "Concluída",
+      "PLACEHOLDER": "Ex: Retornar contato",
+      "EMPTY": "Nenhuma atividade registrada.",
+      "TYPES": {
+        "FOLLOWUP": "Follow-up",
+        "CALL": "Ligação",
+        "WHATSAPP": "WhatsApp",
+        "MEETING": "Reunião",
+        "TASK": "Tarefa",
+        "EMAIL": "E-mail"
+      }
     },
     "HISTORY": {
-      "TITLE": "Histórico CRM"
+      "TITLE": "Histórico CRM",
+      "EMPTY": "Nenhum evento registrado.",
+      "SYSTEM": "Sistema",
+      "DEAL_CREATED": "Oportunidade criada",
+      "DEAL_UPDATED": "Oportunidade atualizada",
+      "STAGE_CHANGED": "Etapa alterada",
+      "STATUS_CHANGED": "Status alterado",
+      "ASSIGNMENT_CHANGED": "Responsável alterado",
+      "ACTIVITY_CREATED": "Atividade criada",
+      "ACTIVITY_UPDATED": "Atividade atualizada",
+      "ACTIVITY_DELETED": "Atividade removida"
     },
     "ERRORS": {
       "CREATE_PIPELINE": "Não foi possível criar o funil",
@@ -76,7 +97,37 @@
       "TITLE": "Oportunidades",
       "CREATE": "Criar oportunidade",
       "EMPTY": "Nenhuma oportunidade para este contato",
-      "OPEN_BOARD": "Abrir funis"
+      "OPEN_BOARD": "Abrir funis",
+      "DEFAULT_TITLE": "Oportunidade — contato #{id}"
+    },
+    "DESCRIPTION": "CRM de oportunidades integrado aos contatos e conversas do Chatwoot.",
+    "LOADING": "Carregando CRM…",
+    "EMPTY_STAGES": "Este funil ainda não possui etapas. Abra as configurações para adicionar a primeira.",
+    "EMPTY_CONTACT": "Sem contato vinculado",
+    "EMPTY_ASSIGNEE": "Sem responsável",
+    "NOT_AVAILABLE": "—",
+    "CONTACT_FALLBACK": "Contato #{id}",
+    "TABLE": {
+      "OPPORTUNITY": "Oportunidade",
+      "CONTACT": "Contato",
+      "STAGE": "Etapa",
+      "VALUE": "Valor",
+      "PROBABILITY": "Prob.",
+      "ASSIGNEE": "Responsável",
+      "CLOSE_DATE": "Fechamento",
+      "STATUS": "Status"
+    },
+    "PRIORITY": {
+      "NONE": "Sem prioridade",
+      "ONE": "★",
+      "TWO": "★★",
+      "THREE": "★★★"
+    },
+    "DETAIL": {
+      "ID": "CRM · #{id}"
+    },
+    "MESSAGES": {
+      "DEAL_UPDATED": "Oportunidade atualizada."
     }
   }
 }
