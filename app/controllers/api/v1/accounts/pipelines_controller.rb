@@ -22,7 +22,7 @@ class Api::V1::Accounts::PipelinesController < Api::V1::Accounts::BaseController
   end
 
   def update
-    @pipeline.update!(pipeline_params.except(:is_default))
+    @pipeline.update!(pipeline_params.except(:is_default, :with_default_stages))
     set_as_default!(@pipeline) if ActiveModel::Type::Boolean.new.cast(pipeline_params[:is_default])
     @pipeline.reload
   end
