@@ -1,4 +1,3 @@
-<!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -102,9 +101,9 @@ const save = async () => {
     });
     await loadSideData();
     emit('updated');
-    useAlert('Oportunidade atualizada.');
+    useAlert(t('PIPELINES.MESSAGES.DEAL_UPDATED'));
   } catch (error) {
-    useAlert(error?.response?.data?.message || error.message || 'Erro ao salvar oportunidade.');
+    useAlert(error?.response?.data?.message || error.message || t('PIPELINES.ERRORS.SAVE_DEAL'));
   } finally {
     saving.value = false;
   }
@@ -167,17 +166,29 @@ const formatDate = value => {
 };
 
 const eventTitle = event => {
-  const labels = {
-    deal_created: 'Oportunidade criada',
-    deal_updated: 'Oportunidade atualizada',
-    stage_changed: 'Etapa alterada',
-    status_changed: 'Status alterado',
-    assignment_changed: 'Responsável alterado',
-    activity_created: 'Atividade criada',
-    activity_updated: 'Atividade atualizada',
-    activity_deleted: 'Atividade removida',
+  const keys = {
+    deal_created: 'PIPELINES.HISTORY.DEAL_CREATED',
+    deal_updated: 'PIPELINES.HISTORY.DEAL_UPDATED',
+    stage_changed: 'PIPELINES.HISTORY.STAGE_CHANGED',
+    status_changed: 'PIPELINES.HISTORY.STATUS_CHANGED',
+    assignment_changed: 'PIPELINES.HISTORY.ASSIGNMENT_CHANGED',
+    activity_created: 'PIPELINES.HISTORY.ACTIVITY_CREATED',
+    activity_updated: 'PIPELINES.HISTORY.ACTIVITY_UPDATED',
+    activity_deleted: 'PIPELINES.HISTORY.ACTIVITY_DELETED',
   };
-  return labels[event.event_type] || event.event_type;
+  return keys[event.event_type] ? t(keys[event.event_type]) : event.event_type;
+};
+
+const activityTypeLabel = type => {
+  const keys = {
+    followup: 'PIPELINES.ACTIVITIES.TYPES.FOLLOWUP',
+    call: 'PIPELINES.ACTIVITIES.TYPES.CALL',
+    whatsapp: 'PIPELINES.ACTIVITIES.TYPES.WHATSAPP',
+    meeting: 'PIPELINES.ACTIVITIES.TYPES.MEETING',
+    task: 'PIPELINES.ACTIVITIES.TYPES.TASK',
+    email: 'PIPELINES.ACTIVITIES.TYPES.EMAIL',
+  };
+  return keys[type] ? t(keys[type]) : type;
 };
 </script>
 
@@ -195,7 +206,7 @@ const eventTitle = event => {
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p class="text-xs font-medium uppercase tracking-wide text-n-slate-10">
-                CRM · #{{ deal.id }}
+                {{ t('PIPELINES.DETAIL.ID', { id: deal.id }) }}
               </p>
               <h2 class="text-xl font-semibold text-n-slate-12">
                 {{ form.title }}
@@ -207,14 +218,16 @@ const eventTitle = event => {
                 :class="{ 'bg-n-teal-3': form.status === 'won' }"
                 @click="setStatus('won')"
               >
-                ✓ {{ t('PIPELINES.STATUS.WON') }}
+                <span class="i-lucide-check size-4" />
+                {{ t('PIPELINES.STATUS.WON') }}
               </button>
               <button
                 class="rounded-lg border border-n-ruby-7 px-3 py-2 text-sm font-medium text-n-ruby-11 hover:bg-n-ruby-3"
                 :class="{ 'bg-n-ruby-3': form.status === 'lost' }"
                 @click="setStatus('lost')"
               >
-                ✕ {{ t('PIPELINES.STATUS.LOST') }}
+                <span class="i-lucide-x size-4" />
+                {{ t('PIPELINES.STATUS.LOST') }}
               </button>
               <button
                 class="flex size-9 items-center justify-center rounded-lg border border-n-weak text-n-slate-11 hover:bg-n-alpha-2"
@@ -303,10 +316,10 @@ const eventTitle = event => {
               v-model.number="form.priority_stars"
               class="h-10 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
             >
-              <option :value="0">—</option>
-              <option :value="1">★</option>
-              <option :value="2">★★</option>
-              <option :value="3">★★★</option>
+              <option :value="0">{{ t('PIPELINES.PRIORITY.NONE') }}</option>
+              <option :value="1">{{ t('PIPELINES.PRIORITY.ONE') }}</option>
+              <option :value="2">{{ t('PIPELINES.PRIORITY.TWO') }}</option>
+              <option :value="3">{{ t('PIPELINES.PRIORITY.THREE') }}</option>
             </select>
           </label>
 
@@ -345,7 +358,7 @@ const eventTitle = event => {
           <div class="mt-3 grid gap-2">
             <input
               v-model="activityForm.title"
-              placeholder="Ex: Retornar contato"
+              :placeholder="t('PIPELINES.ACTIVITIES.PLACEHOLDER')"
               class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-3 text-sm text-n-slate-12 outline-none focus:border-n-brand"
             />
             <div class="grid grid-cols-2 gap-2">
@@ -353,12 +366,12 @@ const eventTitle = event => {
                 v-model="activityForm.activity_type"
                 class="h-9 rounded-lg border border-n-weak bg-n-solid-1 px-2 text-sm text-n-slate-12"
               >
-                <option value="followup">Follow-up</option>
-                <option value="call">Ligação</option>
-                <option value="whatsapp">WhatsApp</option>
-                <option value="meeting">Reunião</option>
-                <option value="task">Tarefa</option>
-                <option value="email">E-mail</option>
+                <option value="followup">{{ t('PIPELINES.ACTIVITIES.TYPES.FOLLOWUP') }}</option>
+                <option value="call">{{ t('PIPELINES.ACTIVITIES.TYPES.CALL') }}</option>
+                <option value="whatsapp">{{ t('PIPELINES.ACTIVITIES.TYPES.WHATSAPP') }}</option>
+                <option value="meeting">{{ t('PIPELINES.ACTIVITIES.TYPES.MEETING') }}</option>
+                <option value="task">{{ t('PIPELINES.ACTIVITIES.TYPES.TASK') }}</option>
+                <option value="email">{{ t('PIPELINES.ACTIVITIES.TYPES.EMAIL') }}</option>
               </select>
               <input
                 v-model="activityForm.due_at"
@@ -371,14 +384,15 @@ const eventTitle = event => {
               :disabled="activitySaving"
               @click="addActivity"
             >
-              + {{ t('PIPELINES.ACTIVITIES.ADD') }}
+              <span class="i-lucide-plus size-4" />
+              {{ t('PIPELINES.ACTIVITIES.ADD') }}
             </button>
           </div>
         </div>
 
         <div class="border-b border-n-weak p-4">
           <div v-if="!activities.length" class="text-xs text-n-slate-10">
-            Nenhuma atividade registrada.
+            {{ t('PIPELINES.ACTIVITIES.EMPTY') }}
           </div>
           <button
             v-for="activity in activities"
@@ -399,7 +413,7 @@ const eventTitle = event => {
                 {{ activity.title }}
               </span>
               <span class="mt-1 block text-xs" :class="activityStateClass(activity)">
-                {{ activity.activity_type }} · {{ formatDate(activity.due_at) }}
+                {{ activityTypeLabel(activity.activity_type) }} · {{ formatDate(activity.due_at) }}
               </span>
             </span>
           </button>
@@ -408,7 +422,7 @@ const eventTitle = event => {
         <div class="p-4">
           <h3 class="mb-3 font-semibold text-n-slate-12">{{ t('PIPELINES.HISTORY.TITLE') }}</h3>
           <div v-if="!events.length" class="text-xs text-n-slate-10">
-            Nenhum evento registrado.
+            {{ t('PIPELINES.HISTORY.EMPTY') }}
           </div>
           <div
             v-for="event in events"
@@ -420,7 +434,7 @@ const eventTitle = event => {
               {{ eventTitle(event) }}
             </p>
             <p class="mt-0.5 text-xs text-n-slate-10">
-              {{ event.actor?.name || 'Sistema' }} · {{ formatDate(event.created_at * 1000) }}
+              {{ event.actor?.name || t('PIPELINES.HISTORY.SYSTEM') }} · {{ formatDate(event.created_at * 1000) }}
             </p>
           </div>
         </div>
