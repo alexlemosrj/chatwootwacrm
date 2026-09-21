@@ -17,7 +17,7 @@ class Api::V1::Accounts::PipelineStagesController < Api::V1::Accounts::BaseContr
 
   def reorder
     stages = params.require(:stages)
-    requested_ids = stages.map { |item| item.require(:id).to_i }
+    requested_ids = stages.map { |item| item[:id].to_i }
     pipeline_ids = @pipeline.pipeline_stages.order(:position).pluck(:id)
 
     unless requested_ids.sort == pipeline_ids.sort
@@ -25,7 +25,7 @@ class Api::V1::Accounts::PipelineStagesController < Api::V1::Accounts::BaseContr
       return
     end
 
-    positions = stages.map { |item| item.require(:position).to_i }
+    positions = stages.map { |item| item[:position].to_i }
     unless positions.sort == (0...pipeline_ids.length).to_a
       render json: { error: 'Stage positions must be contiguous and unique' }, status: :unprocessable_entity
       return
@@ -41,7 +41,7 @@ class Api::V1::Accounts::PipelineStagesController < Api::V1::Accounts::BaseContr
       end
 
       stages.each do |item|
-        locked_stages.fetch(item.require(:id).to_i).update!(position: item.require(:position).to_i)
+        locked_stages.fetch(item[:id].to_i).update!(position: item[:position].to_i)
       end
     end
 
