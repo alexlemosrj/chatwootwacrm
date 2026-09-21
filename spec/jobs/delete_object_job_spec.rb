@@ -56,7 +56,7 @@ RSpec.describe DeleteObjectJob, type: :job do
         account.crm_events.create!(deal: deal, contact: deal.contact, event_type: 'test_event')
       end
 
-      it 'pre-deletes conversations, contacts, inboxes and reporting events and then destroys the account' do
+      it 'pre-deletes conversations, contacts, inboxes and reporting events and then destroys the account', :aggregate_failures do
         conv_ids = account.conversations.pluck(:id)
         contact_ids = account.contacts.pluck(:id)
         inbox_ids = account.inboxes.pluck(:id)
