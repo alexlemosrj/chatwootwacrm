@@ -21,6 +21,6 @@ RSpec.describe Pipeline do
     )
 
     expect(pipeline.destroy).to be(false)
-    expect(pipeline.errors[:deals]).to be_present
+    expect(pipeline.errors[:base]).to be_present
   end
 end
