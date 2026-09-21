@@ -32,7 +32,6 @@ class CrmActivity < ApplicationRecord
     end
   end
 
-
   def deal_belongs_to_account
     return if deal.blank? || account.blank? || deal.account_id == account_id
 
