@@ -74,6 +74,7 @@ jobs:
         run: |
           bundle exec rake db:create
           bundle exec rake db:schema:load
+          bundle exec rails db:migrate RAILS_ENV=test
 
       - name: Run CRM Pro specs
         run: |
