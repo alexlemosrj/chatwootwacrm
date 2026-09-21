@@ -15,6 +15,7 @@ import ConversationAction from './ConversationAction.vue';
 import ConversationParticipant from './ConversationParticipant.vue';
 import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
+import ContactDeals from './ContactDeals.vue';
 import ConversationInfo from './ConversationInfo.vue';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
 import SharedFiles from './SharedFiles.vue';
@@ -226,6 +227,22 @@ onMounted(() => {
                 :empty-state-message="
                   $t('CONVERSATION_CUSTOM_ATTRIBUTES.NO_RECORDS_FOUND')
                 "
+              />
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'contact_deals'">
+            <AccordionItem
+              v-if="contact.id"
+              :title="$t('PIPELINES.CONTACT_SIDEBAR.TITLE')"
+              :is-open="isContactSidebarItemOpen('is_contact_deals_open')"
+              compact
+              @toggle="
+                value => toggleSidebarUIState('is_contact_deals_open', value)
+              "
+            >
+              <ContactDeals
+                :contact-id="contact.id"
+                :conversation-id="conversationId"
               />
             </AccordionItem>
           </div>
