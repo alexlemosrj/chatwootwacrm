@@ -1,0 +1,82 @@
+{
+  "PIPELINES": {
+    "TITLE": "Pipelines",
+    "SIDEBAR": "Pipelines",
+    "NEW_PIPELINE": "Add pipeline",
+    "PIPELINE_NAME": "Pipeline name",
+    "SELECT_PIPELINE": "Select pipeline",
+    "ADD_DEAL": "Add opportunity",
+    "EDIT_DEAL": "Edit opportunity",
+    "SETTINGS": "Pipeline settings",
+    "EMPTY": "No opportunities in this stage",
+    "DROP_HERE": "Drop an opportunity here",
+    "CREATED": "Pipeline created",
+    "KANBAN_VIEW": "Board",
+    "TABLE_VIEW": "Table",
+    "SEARCH": "Search opportunities...",
+    "ANALYTICS": {
+      "COUNT": "Total opportunities",
+      "VALUE": "Pipeline value",
+      "AVG": "Average ticket",
+      "WEIGHTED": "Weighted revenue",
+      "WON": "Won this month",
+      "LOST": "Lost this month"
+    },
+    "FORM": {
+      "TITLE": "Title",
+      "VALUE": "Value",
+      "EXPECTED_REVENUE": "Expected revenue",
+      "PROBABILITY": "Probability",
+      "PRIORITY": "Priority",
+      "CURRENCY": "Currency",
+      "STAGE": "Stage",
+      "CONTACT": "Contact",
+      "ASSIGNEE": "Assignee",
+      "CLOSE_DATE": "Expected close date",
+      "NOTES": "Notes",
+      "SOURCE": "Source / campaign",
+      "STATUS": "Status",
+      "SAVE": "Save",
+      "DELETE": "Delete opportunity",
+      "CANCEL": "Cancel"
+    },
+    "STATUS": {
+      "OPEN": "Open",
+      "WON": "Won",
+      "LOST": "Lost"
+    },
+    "SETTINGS_PANEL": {
+      "RENAME": "Rename pipeline",
+      "STAGES": "Stages",
+      "ADD_STAGE": "Add stage",
+      "NEW_STAGE_NAME": "New stage",
+      "DELETE_STAGE": "Delete stage",
+      "DELETE_PIPELINE": "Delete pipeline",
+      "SAVE_STAGE": "Save",
+      "BLANK_PIPELINE": "Create blank pipeline"
+    },
+    "ACTIVITIES": {
+      "TITLE": "Activities",
+      "ADD": "New activity",
+      "OVERDUE": "Overdue",
+      "TODAY": "Today",
+      "PLANNED": "Planned",
+      "COMPLETED": "Completed"
+    },
+    "HISTORY": {
+      "TITLE": "CRM history"
+    },
+    "ERRORS": {
+      "CREATE_PIPELINE": "Could not create pipeline",
+      "SAVE_DEAL": "Could not save opportunity",
+      "MOVE_DEAL": "Could not move opportunity",
+      "DELETE_STAGE": "Could not delete stage"
+    },
+    "CONTACT_SIDEBAR": {
+      "TITLE": "Opportunities",
+      "CREATE": "Create opportunity",
+      "EMPTY": "No opportunities for this contact",
+      "OPEN_BOARD": "Open pipelines"
+    }
+  }
+}

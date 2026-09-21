@@ -1,0 +1,82 @@
+{
+  "PIPELINES": {
+    "TITLE": "Funis",
+    "SIDEBAR": "Funis",
+    "NEW_PIPELINE": "Adicionar funil",
+    "PIPELINE_NAME": "Nome do funil",
+    "SELECT_PIPELINE": "Selecionar funil",
+    "ADD_DEAL": "Adicionar oportunidade",
+    "EDIT_DEAL": "Editar oportunidade",
+    "SETTINGS": "Configurações do funil",
+    "EMPTY": "Nenhuma oportunidade nesta etapa",
+    "DROP_HERE": "Solte uma oportunidade aqui",
+    "CREATED": "Funil criado",
+    "KANBAN_VIEW": "Quadro",
+    "TABLE_VIEW": "Tabela",
+    "SEARCH": "Pesquisar oportunidades...",
+    "ANALYTICS": {
+      "COUNT": "Total de oportunidades",
+      "VALUE": "Valor do funil",
+      "AVG": "Ticket médio",
+      "WEIGHTED": "Receita ponderada",
+      "WON": "Ganhos no mês",
+      "LOST": "Perdidos no mês"
+    },
+    "FORM": {
+      "TITLE": "Título",
+      "VALUE": "Valor",
+      "EXPECTED_REVENUE": "Receita esperada",
+      "PROBABILITY": "Probabilidade",
+      "PRIORITY": "Prioridade",
+      "CURRENCY": "Moeda",
+      "STAGE": "Etapa",
+      "CONTACT": "Contato",
+      "ASSIGNEE": "Responsável",
+      "CLOSE_DATE": "Previsão de fechamento",
+      "NOTES": "Observações",
+      "SOURCE": "Origem / campanha",
+      "STATUS": "Status",
+      "SAVE": "Salvar",
+      "DELETE": "Excluir oportunidade",
+      "CANCEL": "Cancelar"
+    },
+    "STATUS": {
+      "OPEN": "Aberta",
+      "WON": "Ganha",
+      "LOST": "Perdida"
+    },
+    "SETTINGS_PANEL": {
+      "RENAME": "Renomear funil",
+      "STAGES": "Etapas",
+      "ADD_STAGE": "Adicionar etapa",
+      "NEW_STAGE_NAME": "Nova etapa",
+      "DELETE_STAGE": "Excluir etapa",
+      "DELETE_PIPELINE": "Excluir funil",
+      "SAVE_STAGE": "Salvar",
+      "BLANK_PIPELINE": "Criar funil em branco"
+    },
+    "ACTIVITIES": {
+      "TITLE": "Atividades",
+      "ADD": "Nova atividade",
+      "OVERDUE": "Atrasada",
+      "TODAY": "Hoje",
+      "PLANNED": "Planejada",
+      "COMPLETED": "Concluída"
+    },
+    "HISTORY": {
+      "TITLE": "Histórico CRM"
+    },
+    "ERRORS": {
+      "CREATE_PIPELINE": "Não foi possível criar o funil",
+      "SAVE_DEAL": "Não foi possível salvar a oportunidade",
+      "MOVE_DEAL": "Não foi possível mover a oportunidade",
+      "DELETE_STAGE": "Não foi possível excluir a etapa"
+    },
+    "CONTACT_SIDEBAR": {
+      "TITLE": "Oportunidades",
+      "CREATE": "Criar oportunidade",
+      "EMPTY": "Nenhuma oportunidade para este contato",
+      "OPEN_BOARD": "Abrir funis"
+    }
+  }
+}
