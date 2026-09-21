@@ -34,6 +34,7 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
   end
 
   def destroy
+    create_event!('deal_deleted', { from: deal_snapshot(@deal) })
     @deal.destroy!
     head :ok
   end
