@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/AbcSize, Metrics/MethodLength
 class CreateCrmProCore < ActiveRecord::Migration[7.1]
   def change
     create_pipelines
@@ -115,3 +116,5 @@ class CreateCrmProCore < ActiveRecord::Migration[7.1]
     add_index :crm_events, [:deal_id, :created_at]
   end
 end
+
+# rubocop:enable Metrics/AbcSize, Metrics/MethodLength
