@@ -131,7 +131,9 @@ jobs:
         run: bundle exec rake db:create
 
       - name: Seed database
-        run: bundle exec rake db:schema:load
+        run: |
+          bundle exec rake db:schema:load
+          bundle exec rails db:migrate RAILS_ENV=test
 
       - name: Run backend tests (parallelized)
         run: |
