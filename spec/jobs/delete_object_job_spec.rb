@@ -44,6 +44,16 @@ RSpec.describe DeleteObjectJob, type: :job do
         create_list(:conversation, 1, account: account, inbox: inbox2)
         ReportingEvent.create!(account: account, name: 'acct_metric', value: 2.5)
         ReportingEvent.create!(account: account, inbox: inbox1, name: 'acct_inbox_metric', value: 3.5)
+
+        pipeline = account.pipelines.find_by!(is_default: true)
+        deal = account.deals.create!(
+          pipeline: pipeline,
+          pipeline_stage: pipeline.pipeline_stages.first,
+          contact: account.contacts.first,
+          title: 'CRM deletion regression'
+        )
+        account.crm_activities.create!(deal: deal, title: 'Follow-up', activity_type: 'followup')
+        account.crm_events.create!(deal: deal, contact: deal.contact, event_type: 'test_event')
       end
 
       it 'pre-deletes conversations, contacts, inboxes and reporting events and then destroys the account' do
@@ -51,6 +61,10 @@ RSpec.describe DeleteObjectJob, type: :job do
         contact_ids = account.contacts.pluck(:id)
         inbox_ids = account.inboxes.pluck(:id)
         re_ids = account.reporting_events.pluck(:id)
+        pipeline_ids = account.pipelines.pluck(:id)
+        deal_ids = account.deals.pluck(:id)
+        activity_ids = account.crm_activities.pluck(:id)
+        event_ids = account.crm_events.pluck(:id)
 
         described_class.perform_now(account)
 
@@ -59,6 +73,10 @@ RSpec.describe DeleteObjectJob, type: :job do
         expect(Contact.where(id: contact_ids).reload).to be_empty
         expect(Inbox.where(id: inbox_ids).reload).to be_empty
         expect(ReportingEvent.where(id: re_ids).reload).to be_empty
+        expect(Pipeline.where(id: pipeline_ids).reload).to be_empty
+        expect(Deal.where(id: deal_ids).reload).to be_empty
+        expect(CrmActivity.where(id: activity_ids).reload).to be_empty
+        expect(CrmEvent.where(id: event_ids).reload).to be_empty
         expect { account.reload }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end
