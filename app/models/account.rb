@@ -87,6 +87,10 @@ class Account < ApplicationRecord
   has_many :hooks, dependent: :destroy_async, class_name: 'Integrations::Hook'
   has_many :inboxes, dependent: :destroy_async
   has_many :labels, dependent: :destroy_async
+  has_many :pipelines, dependent: :destroy_async
+  has_many :deals, dependent: :destroy_async
+  has_many :crm_activities, dependent: :destroy_async
+  has_many :crm_events, dependent: :destroy_async
   has_many :line_channels, dependent: :destroy_async, class_name: '::Channel::Line'
   has_many :mentions, dependent: :destroy_async
   has_many :messages, dependent: :destroy_async
@@ -114,6 +118,7 @@ class Account < ApplicationRecord
 
   before_validation :validate_limit_keys
   after_create_commit :notify_creation
+  after_create_commit :provision_crm
   after_update_commit :clear_unread_conversation_counts_cache, if: :saved_change_to_feature_conversation_unread_counts?
   after_update :resume_delayed_automations, if: -> { saved_change_to_feature_delayed_automations? && feature_delayed_automations? }
   after_destroy :remove_account_sequences
@@ -192,6 +197,12 @@ class Account < ApplicationRecord
 
   def notify_creation
     Rails.configuration.dispatcher.dispatch(ACCOUNT_CREATED, Time.zone.now, account: self)
+  end
+
+  def provision_crm
+    Crm::ProvisionAccount.call(self)
+  rescue StandardError => e
+    Rails.logger.error("CRM provisioning failed for account #{id}: #{e.class} - #{e.message}")
   end
 
   def clear_unread_conversation_counts_cache
