@@ -98,7 +98,7 @@
       "CREATE": "Criar oportunidade",
       "EMPTY": "Nenhuma oportunidade para este contato",
       "OPEN_BOARD": "Abrir funis",
-      "DEFAULT_TITLE": "Oportunidade — contato #{id}"
+      "DEFAULT_TITLE": "Oportunidade — contato {id}"
     },
     "DESCRIPTION": "CRM de oportunidades integrado aos contatos e conversas do Chatwoot.",
     "LOADING": "Carregando CRM…",
@@ -106,7 +106,7 @@
     "EMPTY_CONTACT": "Sem contato vinculado",
     "EMPTY_ASSIGNEE": "Sem responsável",
     "NOT_AVAILABLE": "—",
-    "CONTACT_FALLBACK": "Contato #{id}",
+    "CONTACT_FALLBACK": "Contato {id}",
     "TABLE": {
       "OPPORTUNITY": "Oportunidade",
       "CONTACT": "Contato",
@@ -124,7 +124,7 @@
       "THREE": "★★★"
     },
     "DETAIL": {
-      "ID": "CRM · #{id}"
+      "ID": "CRM · {id}"
     },
     "MESSAGES": {
       "DEAL_UPDATED": "Oportunidade atualizada."
