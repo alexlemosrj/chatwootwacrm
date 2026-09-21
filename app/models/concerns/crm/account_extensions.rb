@@ -4,10 +4,10 @@ module Crm::AccountExtensions
   extend ActiveSupport::Concern
 
   included do
-    has_many :pipelines, dependent: :destroy_async
-    has_many :deals, dependent: :destroy_async
-    has_many :crm_activities, dependent: :destroy_async
-    has_many :crm_events, dependent: :destroy_async
+    has_many :crm_events, dependent: :destroy
+    has_many :crm_activities, dependent: :destroy
+    has_many :deals, dependent: :destroy
+    has_many :pipelines, dependent: :destroy
 
     after_create_commit :provision_crm
   end
