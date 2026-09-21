@@ -1,0 +1,10 @@
+json.id resource.id
+json.pipeline_id resource.pipeline_id
+json.name resource.name
+json.position resource.position
+json.color resource.color
+json.default_probability resource.default_probability
+json.is_won resource.is_won
+json.is_lost resource.is_lost
+json.created_at resource.created_at.to_i
+json.updated_at resource.updated_at.to_i
