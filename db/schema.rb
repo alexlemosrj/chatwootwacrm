@@ -10,24 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
-  create_schema "auth"
-  create_schema "extensions"
-  create_schema "graphql"
-  create_schema "graphql_public"
-  create_schema "pgbouncer"
-  create_schema "realtime"
-  create_schema "storage"
-  create_schema "vault"
-
+ActiveRecord::Schema[7.1].define(version: 2026_08_31_000000) do
   # These extensions should be enabled to support this database
-  enable_extension "pg_graphql"
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
-  enable_extension "supabase_vault"
-  enable_extension "uuid-ossp"
   enable_extension "vector"
 
   create_table "access_tokens", force: :cascade do |t|
@@ -183,6 +171,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.index ["account_id"], name: "index_agent_sessions_on_account_id"
     t.index ["assistant_id"], name: "index_agent_sessions_on_assistant_id"
     t.index ["cited_document_ids"], name: "index_agent_sessions_on_cited_document_ids", using: :gin
+    t.index ["document_ids"], name: "index_agent_sessions_on_document_ids", using: :gin
     t.index ["used_faq_ids"], name: "index_agent_sessions_on_used_faq_ids", using: :gin
     t.index ["user_id"], name: "index_agent_sessions_on_user_id"
   end
@@ -287,6 +276,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.string "remote_address"
     t.string "request_uuid"
     t.datetime "created_at", precision: nil
+    t.string "city"
+    t.string "country"
+    t.string "country_code"
+    t.index ["associated_type", "associated_id", "created_at"], name: "index_audits_on_associated_and_created_at"
     t.index ["associated_type", "associated_id"], name: "associated_index"
     t.index ["auditable_type", "auditable_id", "version"], name: "auditable_index"
     t.index ["created_at"], name: "index_audits_on_created_at"
@@ -352,6 +345,33 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.index ["provider", "provider_call_id"], name: "index_calls_on_provider_and_provider_call_id", unique: true
   end
 
+  create_table "campaign_recipients", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "campaign_id", null: false
+    t.bigint "contact_id", null: false
+    t.bigint "inbox_id", null: false
+    t.string "source_id"
+    t.integer "status", default: 0, null: false
+    t.string "error_code"
+    t.string "error_title"
+    t.text "error_message"
+    t.text "message_content"
+    t.datetime "sent_at"
+    t.datetime "delivered_at"
+    t.datetime "read_at"
+    t.datetime "failed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "campaign_id"], name: "index_campaign_recipients_on_account_id_and_campaign_id"
+    t.index ["account_id"], name: "index_campaign_recipients_on_account_id"
+    t.index ["campaign_id", "contact_id"], name: "index_campaign_recipients_on_campaign_id_and_contact_id", unique: true
+    t.index ["campaign_id", "status"], name: "index_campaign_recipients_on_campaign_id_and_status"
+    t.index ["campaign_id"], name: "index_campaign_recipients_on_campaign_id"
+    t.index ["contact_id"], name: "index_campaign_recipients_on_contact_id"
+    t.index ["inbox_id"], name: "index_campaign_recipients_on_inbox_id"
+    t.index ["source_id"], name: "index_campaign_recipients_on_source_id", unique: true, where: "(source_id IS NOT NULL)"
+  end
+
   create_table "campaigns", force: :cascade do |t|
     t.integer "display_id", null: false
     t.string "title", null: false
@@ -370,6 +390,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.datetime "scheduled_at", precision: nil
     t.boolean "trigger_only_during_business_hours", default: false
     t.jsonb "template_params"
+    t.datetime "started_at"
+    t.datetime "completed_at"
     t.index ["account_id"], name: "index_campaigns_on_account_id"
     t.index ["campaign_status"], name: "index_campaigns_on_campaign_status"
     t.index ["campaign_type"], name: "index_campaigns_on_campaign_type"
@@ -483,8 +505,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["account_id", "assistant_id", "status", "language"], name: "idx_cap_faq_suggestions_on_account_assistant_status_language"
     t.index ["account_id"], name: "index_captain_faq_suggestions_on_account_id"
+    t.index ["account_id", "assistant_id", "status", "language"], name: "idx_cap_faq_suggestions_on_account_assistant_status_language"
     t.index ["assistant_id"], name: "index_captain_faq_suggestions_on_assistant_id"
     t.index ["embedding"], name: "vector_idx_captain_faq_suggestions_embedding", opclass: :vector_cosine_ops, using: :ivfflat
   end
@@ -603,6 +625,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
     t.string "instagram_id"
+    t.string "provider_name"
     t.index ["page_id", "account_id"], name: "index_channel_facebook_pages_on_page_id_and_account_id", unique: true
     t.index ["page_id"], name: "index_channel_facebook_pages_on_page_id"
   end
@@ -614,6 +637,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.string "instagram_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "provider_name"
     t.index ["instagram_id"], name: "index_channel_instagram_on_instagram_id", unique: true
   end
 
@@ -655,6 +679,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.datetime "refresh_token_expires_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "provider_name"
     t.index ["business_id"], name: "index_channel_tiktok_on_business_id", unique: true
   end
 
@@ -724,8 +749,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.jsonb "phone_number_health", default: {}, null: false
     t.datetime "phone_number_health_checked_at"
     t.string "phone_number_health_error", limit: 500
-    t.index ["phone_number"], name: "index_channel_whatsapp_on_phone_number", unique: true
     t.index ["phone_number_health_checked_at"], name: "index_channel_whatsapp_on_phone_number_health_checked_at"
+    t.index ["phone_number"], name: "index_channel_whatsapp_on_phone_number", unique: true
   end
 
   create_table "companies", force: :cascade do |t|
@@ -861,10 +886,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.datetime "waiting_since"
     t.text "cached_label_list"
     t.bigint "assignee_agent_bot_id"
+    t.string "ai_assignee_type"
     t.datetime "status_changed_at"
     t.index ["account_id", "display_id"], name: "index_conversations_on_account_id_and_display_id", unique: true
     t.index ["account_id", "id"], name: "index_conversations_on_id_and_account_id"
     t.index ["account_id", "inbox_id", "status", "assignee_id"], name: "conv_acid_inbid_stat_asgnid_idx"
+    t.index ["account_id", "status", "created_at"], name: "index_conversations_on_account_id_status_created_at"
     t.index ["account_id"], name: "index_conversations_on_account_id"
     t.index ["assignee_id", "account_id"], name: "index_conversations_on_assignee_id_and_account_id"
     t.index ["campaign_id"], name: "index_conversations_on_campaign_id"
@@ -1054,31 +1081,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.index ["source_provider"], name: "index_data_imports_on_source_provider"
   end
 
-  create_table "deals", force: :cascade do |t|
-    t.bigint "account_id", null: false
-    t.bigint "pipeline_id", null: false
-    t.bigint "pipeline_stage_id", null: false
-    t.bigint "contact_id"
-    t.bigint "conversation_id"
-    t.bigint "assignee_id"
-    t.string "title", null: false
-    t.decimal "value", precision: 12, scale: 2, default: "0.0", null: false
-    t.string "currency", default: "USD", null: false
-    t.text "notes"
-    t.date "expected_close_date"
-    t.string "status", default: "open", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["account_id", "pipeline_id"], name: "index_deals_on_account_id_and_pipeline_id"
-    t.index ["account_id", "status"], name: "index_deals_on_account_id_and_status"
-    t.index ["account_id"], name: "index_deals_on_account_id"
-    t.index ["assignee_id"], name: "index_deals_on_assignee_id"
-    t.index ["contact_id"], name: "index_deals_on_contact_id"
-    t.index ["conversation_id"], name: "index_deals_on_conversation_id"
-    t.index ["pipeline_id"], name: "index_deals_on_pipeline_id"
-    t.index ["pipeline_stage_id"], name: "index_deals_on_pipeline_stage_id"
-  end
-
   create_table "email_templates", force: :cascade do |t|
     t.string "name", null: false
     t.text "body", null: false
@@ -1088,10 +1090,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "inbox_id"
-    t.index ["account_id", "name", "template_type", "locale"], name: "index_email_templates_on_account_scope", unique: true, where: "((account_id IS NOT NULL) AND (inbox_id IS NULL))"
+    t.index ["account_id", "name", "template_type", "locale"], name: "index_email_templates_on_account_scope", unique: true, where: "(account_id IS NOT NULL) AND (inbox_id IS NULL)"
     t.index ["inbox_id", "name", "template_type", "locale"], name: "index_email_templates_on_inbox_scope", unique: true, where: "(inbox_id IS NOT NULL)"
     t.index ["inbox_id"], name: "index_email_templates_on_inbox_id"
-    t.index ["name", "template_type", "locale"], name: "index_email_templates_on_installation_scope", unique: true, where: "((account_id IS NULL) AND (inbox_id IS NULL))"
+    t.index ["name", "template_type", "locale"], name: "index_email_templates_on_installation_scope", unique: true, where: "(account_id IS NULL) AND (inbox_id IS NULL)"
   end
 
   create_table "folders", force: :cascade do |t|
@@ -1324,26 +1326,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
     t.index ["secondary_actor_type", "secondary_actor_id"], name: "uniq_secondary_actor_per_account_notifications"
     t.index ["user_id", "account_id", "snoozed_until", "read_at"], name: "idx_notifications_performance"
     t.index ["user_id"], name: "index_notifications_on_user_id"
-  end
-
-  create_table "pipeline_stages", force: :cascade do |t|
-    t.bigint "pipeline_id", null: false
-    t.string "name", null: false
-    t.integer "position", default: 0, null: false
-    t.string "color", default: "#3b82f6", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["pipeline_id", "position"], name: "index_pipeline_stages_on_pipeline_id_and_position"
-    t.index ["pipeline_id"], name: "index_pipeline_stages_on_pipeline_id"
-  end
-
-  create_table "pipelines", force: :cascade do |t|
-    t.bigint "account_id", null: false
-    t.string "name", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["account_id", "name"], name: "index_pipelines_on_account_id_and_name"
-    t.index ["account_id"], name: "index_pipelines_on_account_id"
   end
 
   create_table "platform_app_permissibles", force: :cascade do |t|
@@ -1616,15 +1598,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_05_170000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "deals", "accounts"
-  add_foreign_key "deals", "contacts"
-  add_foreign_key "deals", "conversations"
-  add_foreign_key "deals", "pipeline_stages"
-  add_foreign_key "deals", "pipelines"
-  add_foreign_key "deals", "users", column: "assignee_id"
+  add_foreign_key "campaign_recipients", "accounts", on_delete: :cascade
+  add_foreign_key "campaign_recipients", "campaigns", on_delete: :cascade
+  add_foreign_key "campaign_recipients", "contacts", on_delete: :cascade
+  add_foreign_key "campaign_recipients", "inboxes", on_delete: :cascade
   add_foreign_key "inboxes", "portals"
-  add_foreign_key "pipeline_stages", "pipelines"
-  add_foreign_key "pipelines", "accounts"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").

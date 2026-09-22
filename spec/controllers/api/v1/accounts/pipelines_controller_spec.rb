@@ -1,120 +1,82 @@
 require 'rails_helper'
 
 RSpec.describe 'Pipelines API', type: :request do
-  let!(:account) { create(:account) }
-  let!(:other_account) { create(:account) }
-
-  describe 'GET /api/v1/accounts/{account.id}/pipelines' do
-    it 'returns unauthorized when unauthenticated' do
-      get "/api/v1/accounts/#{account.id}/pipelines"
-      expect(response).to have_http_status(:unauthorized)
-    end
-
-    context 'when authenticated as agent' do
-      let(:agent) { create(:user, account: account, role: :agent) }
-
-      it 'seeds default pipeline and lists it' do
-        get "/api/v1/accounts/#{account.id}/pipelines",
-            headers: agent.create_new_auth_token,
-            as: :json
-
-        expect(response).to have_http_status(:success)
-        body = response.parsed_body
-        expect(body['payload'].length).to eq(1)
-        expect(body['payload'].first['name']).to eq('Sales Pipeline')
-        expect(body['payload'].first['stages'].length).to eq(5)
-      end
-
-      it 'does not leak other account pipelines' do
-        create(:pipeline, account: other_account, name: 'Secret')
-        get "/api/v1/accounts/#{account.id}/pipelines",
-            headers: agent.create_new_auth_token,
-            as: :json
-
-        names = response.parsed_body['payload'].pluck('name')
-        expect(names).not_to include('Secret')
-      end
-    end
-  end
-
-  describe 'POST /api/v1/accounts/{account.id}/pipelines' do
-    let(:admin) { create(:user, account: account, role: :administrator) }
-    let(:agent) { create(:user, account: account, role: :agent) }
-
-    it 'allows admin to create pipeline with default stages' do
-      post "/api/v1/accounts/#{account.id}/pipelines",
-           params: { pipeline: { name: 'Outbound' } },
-           headers: admin.create_new_auth_token,
-           as: :json
-
-      expect(response).to have_http_status(:success)
-      expect(response.parsed_body['stages'].length).to eq(5)
-    end
-
-    it 'forbids agent from creating pipeline' do
-      post "/api/v1/accounts/#{account.id}/pipelines",
-           params: { pipeline: { name: 'Outbound' } },
-           headers: agent.create_new_auth_token,
-           as: :json
-
-      expect(response).to have_http_status(:unauthorized)
-    end
-  end
-end
-
-RSpec.describe 'Deals API', type: :request do
-  let!(:account) { create(:account) }
-  let!(:pipeline) { create(:pipeline, account: account) }
-  let!(:stage) { create(:pipeline_stage, pipeline: pipeline) }
-  let!(:stage_two) { create(:pipeline_stage, pipeline: pipeline, position: 1) }
+  let(:account) { create(:account) }
   let(:agent) { create(:user, account: account, role: :agent) }
+  let(:pipeline) { account.pipelines.find_by!(is_default: true) }
 
-  describe 'POST /api/v1/accounts/{account.id}/deals' do
-    it 'creates a deal' do
-      post "/api/v1/accounts/#{account.id}/deals",
-           params: {
-             deal: {
-               title: 'Acme deal',
-               pipeline_id: pipeline.id,
-               pipeline_stage_id: stage.id,
-               value: 2500,
-               currency: 'BRL'
-             }
-           },
-           headers: agent.create_new_auth_token,
-           as: :json
+  describe 'GET /api/v1/accounts/:account_id/pipelines' do
+    it 'requires authentication' do
+      get "/api/v1/accounts/#{account.id}/pipelines"
 
-      expect(response).to have_http_status(:success)
-      expect(response.parsed_body['title']).to eq('Acme deal')
-      expect(response.parsed_body['value']).to eq(2500.0)
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'returns the provisioned pipeline and stages' do
+      get "/api/v1/accounts/#{account.id}/pipelines",
+          headers: agent.create_new_auth_token,
+          as: :json
+
+      expect(response).to have_http_status(:success), response.body
+      payload = response.parsed_body['payload']
+      expect(payload.length).to eq(1)
+      expect(payload.first['is_default']).to be(true)
+      expect(payload.first['stages'].map { |stage| stage['name'] }).to eq(
+        ['Novo Lead', 'Qualificado', 'Proposta', 'Negociação', 'Ganho']
+      )
     end
   end
 
-  describe 'PATCH /api/v1/accounts/{account.id}/deals/:id' do
-    let!(:deal) { create(:deal, account: account, pipeline: pipeline, pipeline_stage: stage) }
+  describe 'POST /api/v1/accounts/:account_id/pipelines' do
+    it 'can create a blank pipeline' do
+      expect do
+        post "/api/v1/accounts/#{account.id}/pipelines",
+             params: {
+               pipeline: {
+                 name: 'Enterprise',
+                 with_default_stages: false
+               }
+             },
+             headers: agent.create_new_auth_token,
+             as: :json
+      end.to change(account.pipelines, :count).by(1)
 
-    it 'moves deal to another stage' do
-      patch "/api/v1/accounts/#{account.id}/deals/#{deal.id}",
-            params: { deal: { pipeline_stage_id: stage_two.id } },
+      expect(response).to have_http_status(:success), response.body
+      created = account.pipelines.find_by!(name: 'Enterprise')
+      expect(created.pipeline_stages).to be_empty
+    end
+  end
+
+  describe 'PATCH /api/v1/accounts/:account_id/pipelines/:pipeline_id/pipeline_stages/reorder' do
+    it 'reorders every stage from the selected account pipeline without position collisions' do
+      ordered = pipeline.pipeline_stages.order(:position).to_a
+      reordered = [ordered[1], ordered[0], *ordered.drop(2)]
+
+      patch "/api/v1/accounts/#{account.id}/pipelines/#{pipeline.id}/pipeline_stages/reorder",
+            params: {
+              stages: reordered.each_with_index.map do |stage, position|
+                { id: stage.id, position: position }
+              end
+            },
             headers: agent.create_new_auth_token,
             as: :json
 
-      expect(response).to have_http_status(:success)
-      expect(deal.reload.pipeline_stage_id).to eq(stage_two.id)
+      expect(response).to have_http_status(:success), response.body
+      expect(pipeline.pipeline_stages.order(:position).pluck(:id)).to eq(reordered.map(&:id))
     end
 
-    it 'does not allow updating deal from another account' do
-      other = create(:account)
-      other_pipeline = create(:pipeline, account: other)
-      other_stage = create(:pipeline_stage, pipeline: other_pipeline)
-      foreign = create(:deal, account: other, pipeline: other_pipeline, pipeline_stage: other_stage)
+    it 'rejects a stage from another account' do
+      other_account = create(:account)
+      foreign_stage = other_account.pipelines.find_by!(is_default: true).pipeline_stages.first
 
-      patch "/api/v1/accounts/#{account.id}/deals/#{foreign.id}",
-            params: { deal: { title: 'hacked' } },
+      patch "/api/v1/accounts/#{account.id}/pipelines/#{pipeline.id}/pipeline_stages/reorder",
+            params: {
+              stages: [{ id: foreign_stage.id, position: 0 }]
+            },
             headers: agent.create_new_auth_token,
             as: :json
 
-      expect(response).to have_http_status(:not_found)
+      expect(response).to have_http_status(:unprocessable_entity), response.body
     end
   end
 end

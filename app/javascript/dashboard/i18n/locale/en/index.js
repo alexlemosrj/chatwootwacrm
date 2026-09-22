@@ -28,12 +28,12 @@ import integrations from './integrations.json';
 import labelsMgmt from './labelsMgmt.json';
 import login from './login.json';
 import macros from './macros.json';
+import pipelines from './pipelines.json';
 import report from './report.json';
 import resetPassword from './resetPassword.json';
 import search from './search.json';
 import setNewPassword from './setNewPassword.json';
 import settings from './settings.json';
-import pipelines from './pipelines.json';
 import signup from './signup.json';
 import sla from './sla.json';
 import snooze from './snooze.json';
@@ -77,12 +77,12 @@ export default {
   ...labelsMgmt,
   ...login,
   ...macros,
+  ...pipelines,
   ...report,
   ...resetPassword,
   ...search,
   ...setNewPassword,
   ...settings,
-  ...pipelines,
   ...signup,
   ...sla,
   ...snooze,

@@ -1,0 +1,232 @@
+# rubocop:disable Metrics/ClassLength
+class CreateCrmProCore < ActiveRecord::Migration[7.1]
+  def up
+    ensure_pipelines
+    ensure_pipeline_stages
+    ensure_deals
+    ensure_crm_activities
+    ensure_crm_events
+    ensure_crm_account_cascades
+  end
+
+  def down
+    raise ActiveRecord::IrreversibleMigration,
+          'CRM Pro supports both fresh and legacy schemas; automatic rollback cannot safely infer table ownership'
+  end
+
+  private
+
+  def ensure_pipelines
+    create_pipelines_table unless table_exists?(:pipelines)
+    add_column :pipelines, :is_default, :boolean, null: false, default: false unless column_exists?(:pipelines, :is_default)
+    add_index :pipelines, [:account_id, :name] unless index_exists?(:pipelines, [:account_id, :name])
+    add_default_pipeline_index
+  end
+
+  def create_pipelines_table
+    create_table :pipelines do |t|
+      t.references :account, null: false, foreign_key: true
+      t.string :name, null: false
+      t.boolean :is_default, null: false, default: false
+      t.timestamps
+    end
+  end
+
+  def add_default_pipeline_index
+    return if index_exists?(:pipelines, :account_id, name: 'index_pipelines_one_default_per_account')
+
+    add_index :pipelines,
+              :account_id,
+              unique: true,
+              where: 'is_default = TRUE',
+              name: 'index_pipelines_one_default_per_account'
+  end
+
+  def ensure_pipeline_stages
+    create_pipeline_stages_table unless table_exists?(:pipeline_stages)
+    ensure_pipeline_stage_columns
+    normalize_stage_positions
+    ensure_pipeline_stage_index
+    ensure_pipeline_stage_constraints
+  end
+
+  def create_pipeline_stages_table
+    create_table :pipeline_stages do |t|
+      t.references :pipeline, null: false, foreign_key: true
+      t.string :name, null: false
+      t.integer :position, null: false, default: 0
+      t.string :color, null: false, default: '#3b82f6'
+      t.decimal :default_probability, precision: 5, scale: 2, null: false, default: 0
+      t.boolean :is_won, null: false, default: false
+      t.boolean :is_lost, null: false, default: false
+      t.timestamps
+    end
+  end
+
+  def ensure_pipeline_stage_columns
+    unless column_exists?(:pipeline_stages, :default_probability)
+      add_column :pipeline_stages, :default_probability, :decimal, precision: 5, scale: 2, null: false, default: 0
+    end
+    add_column :pipeline_stages, :is_won, :boolean, null: false, default: false unless column_exists?(:pipeline_stages, :is_won)
+    add_column :pipeline_stages, :is_lost, :boolean, null: false, default: false unless column_exists?(:pipeline_stages, :is_lost)
+  end
+
+  def ensure_pipeline_stage_index
+    has_index = index_exists?(:pipeline_stages, [:pipeline_id, :position])
+    has_unique_index = index_exists?(:pipeline_stages, [:pipeline_id, :position], unique: true)
+
+    remove_index :pipeline_stages, column: [:pipeline_id, :position] if has_index && !has_unique_index
+    add_index :pipeline_stages, [:pipeline_id, :position], unique: true unless has_unique_index
+  end
+
+  def ensure_pipeline_stage_constraints
+    unless check_constraint_exists?(:pipeline_stages, name: 'pipeline_stages_probability_range')
+      add_check_constraint :pipeline_stages,
+                           'default_probability >= 0 AND default_probability <= 100',
+                           name: 'pipeline_stages_probability_range'
+    end
+
+    return if check_constraint_exists?(:pipeline_stages, name: 'pipeline_stages_not_won_and_lost')
+
+    add_check_constraint :pipeline_stages,
+                         'NOT (is_won AND is_lost)',
+                         name: 'pipeline_stages_not_won_and_lost'
+  end
+
+  def normalize_stage_positions
+    execute <<~SQL.squish
+      WITH ranked AS (
+        SELECT id,
+               ROW_NUMBER() OVER (PARTITION BY pipeline_id ORDER BY position, id) - 1 AS normalized_position
+        FROM pipeline_stages
+      )
+      UPDATE pipeline_stages
+      SET position = ranked.normalized_position
+      FROM ranked
+      WHERE pipeline_stages.id = ranked.id
+    SQL
+  end
+
+  def ensure_deals
+    create_deals_table unless table_exists?(:deals)
+    change_column :deals, :value, :decimal, precision: 14, scale: 2, null: false, default: 0
+    change_column_default :deals, :currency, 'BRL'
+    ensure_deal_columns
+    ensure_deal_indexes
+    ensure_deal_constraints
+  end
+
+  def create_deals_table
+    create_table :deals do |t|
+      t.references :account, null: false, foreign_key: true
+      t.references :pipeline, null: false, foreign_key: true
+      t.references :pipeline_stage, null: false, foreign_key: true
+      t.references :contact, foreign_key: true
+      t.references :conversation, foreign_key: true
+      t.references :assignee, foreign_key: { to_table: :users }
+      t.string :title, null: false
+      t.decimal :value, precision: 14, scale: 2, null: false, default: 0
+      t.string :currency, null: false, default: 'BRL'
+      t.text :notes
+      t.date :expected_close_date
+      t.string :status, null: false, default: 'open'
+      t.timestamps
+    end
+  end
+
+  def ensure_deal_columns
+    add_column :deals, :expected_revenue, :decimal, precision: 14, scale: 2, null: false, default: 0 unless column_exists?(:deals, :expected_revenue)
+    add_column :deals, :probability, :decimal, precision: 5, scale: 2, null: false, default: 0 unless column_exists?(:deals, :probability)
+    add_column :deals, :priority_stars, :integer, null: false, default: 0 unless column_exists?(:deals, :priority_stars)
+    add_column :deals, :campaign_source, :string unless column_exists?(:deals, :campaign_source)
+    add_column :deals, :utm_data, :jsonb, null: false, default: {} unless column_exists?(:deals, :utm_data)
+    add_column :deals, :custom_attributes, :jsonb, null: false, default: {} unless column_exists?(:deals, :custom_attributes)
+  end
+
+  def ensure_deal_indexes
+    add_index :deals, [:account_id, :pipeline_id] unless index_exists?(:deals, [:account_id, :pipeline_id])
+    add_index :deals, [:account_id, :status] unless index_exists?(:deals, [:account_id, :status])
+    add_index :deals, [:account_id, :assignee_id] unless index_exists?(:deals, [:account_id, :assignee_id])
+    add_index :deals, [:pipeline_stage_id, :status] unless index_exists?(:deals, [:pipeline_stage_id, :status])
+  end
+
+  def ensure_deal_constraints
+    unless check_constraint_exists?(:deals, name: 'deals_status_values')
+      add_check_constraint :deals, "status IN ('open', 'won', 'lost')", name: 'deals_status_values'
+    end
+    unless check_constraint_exists?(:deals, name: 'deals_probability_range')
+      add_check_constraint :deals, 'probability >= 0 AND probability <= 100', name: 'deals_probability_range'
+    end
+    return if check_constraint_exists?(:deals, name: 'deals_priority_stars_range')
+
+    add_check_constraint :deals,
+                         'priority_stars >= 0 AND priority_stars <= 3',
+                         name: 'deals_priority_stars_range'
+  end
+
+  def ensure_crm_activities
+    return if table_exists?(:crm_activities)
+
+    create_crm_activities_table
+    add_index :crm_activities, [:account_id, :status, :due_at]
+    add_index :crm_activities, [:deal_id, :status]
+    add_crm_activity_constraints
+  end
+
+  def create_crm_activities_table
+    create_table :crm_activities do |t|
+      t.references :account, null: false, foreign_key: true
+      t.references :deal, foreign_key: true
+      t.references :contact, foreign_key: true
+      t.references :assignee, foreign_key: { to_table: :users }
+      t.string :activity_type, null: false
+      t.string :title, null: false
+      t.datetime :start_at
+      t.datetime :due_at
+      t.datetime :completed_at
+      t.string :status, null: false, default: 'planned'
+      t.text :notes
+      t.timestamps
+    end
+  end
+
+  def add_crm_activity_constraints
+    add_check_constraint :crm_activities,
+                         "activity_type IN ('call', 'whatsapp', 'meeting', 'followup', 'task', 'email')",
+                         name: 'crm_activities_type_values'
+    add_check_constraint :crm_activities,
+                         "status IN ('planned', 'completed', 'cancelled')",
+                         name: 'crm_activities_status_values'
+  end
+
+  def ensure_crm_account_cascades
+    replace_foreign_key_with_cascade(:pipelines, :accounts)
+    replace_foreign_key_with_cascade(:deals, :accounts)
+    replace_foreign_key_with_cascade(:crm_activities, :accounts)
+    replace_foreign_key_with_cascade(:crm_events, :accounts)
+  end
+
+  def replace_foreign_key_with_cascade(from_table, to_table)
+    remove_foreign_key from_table, to_table if foreign_key_exists?(from_table, to_table)
+    add_foreign_key from_table, to_table, on_delete: :cascade
+  end
+
+  def ensure_crm_events
+    return if table_exists?(:crm_events)
+
+    create_table :crm_events do |t|
+      t.references :account, null: false, foreign_key: true
+      t.references :deal, foreign_key: true
+      t.references :contact, foreign_key: true
+      t.references :actor, foreign_key: { to_table: :users }
+      t.string :event_type, null: false
+      t.jsonb :metadata, null: false, default: {}
+      t.timestamps
+    end
+
+    add_index :crm_events, [:account_id, :created_at]
+    add_index :crm_events, [:deal_id, :created_at]
+  end
+end
+
+# rubocop:enable Metrics/ClassLength

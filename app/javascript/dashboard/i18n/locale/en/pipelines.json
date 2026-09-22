@@ -1,35 +1,43 @@
 {
   "PIPELINES": {
     "TITLE": "Pipelines",
+    "SIDEBAR": "Pipelines",
     "NEW_PIPELINE": "Add pipeline",
     "PIPELINE_NAME": "Pipeline name",
     "SELECT_PIPELINE": "Select pipeline",
-    "ADD_DEAL": "Add deal",
-    "EDIT_DEAL": "Edit deal",
+    "ADD_DEAL": "Add opportunity",
+    "EDIT_DEAL": "Edit opportunity",
     "SETTINGS": "Pipeline settings",
-    "EMPTY": "No deals in this stage",
-    "DROP_HERE": "Drop a deal here",
+    "EMPTY": "No opportunities in this stage",
+    "DROP_HERE": "Drop an opportunity here",
     "CREATED": "Pipeline created",
+    "KANBAN_VIEW": "Board",
+    "TABLE_VIEW": "Table",
+    "SEARCH": "Search opportunities...",
     "ANALYTICS": {
-      "COUNT": "Open deals",
+      "COUNT": "Total opportunities",
       "VALUE": "Pipeline value",
-      "AVG": "Average deal",
-      "WEIGHTED": "Weighted value",
+      "AVG": "Average ticket",
+      "WEIGHTED": "Weighted revenue",
       "WON": "Won this month",
       "LOST": "Lost this month"
     },
     "FORM": {
       "TITLE": "Title",
       "VALUE": "Value",
+      "EXPECTED_REVENUE": "Expected revenue",
+      "PROBABILITY": "Probability",
+      "PRIORITY": "Priority",
       "CURRENCY": "Currency",
       "STAGE": "Stage",
-      "CONTACT": "Contact ID",
+      "CONTACT": "Contact",
       "ASSIGNEE": "Assignee",
-      "CLOSE_DATE": "Expected close",
+      "CLOSE_DATE": "Expected close date",
       "NOTES": "Notes",
+      "SOURCE": "Source / campaign",
       "STATUS": "Status",
       "SAVE": "Save",
-      "DELETE": "Delete deal",
+      "DELETE": "Delete opportunity",
       "CANCEL": "Cancel"
     },
     "STATUS": {
@@ -44,19 +52,82 @@
       "NEW_STAGE_NAME": "New stage",
       "DELETE_STAGE": "Delete stage",
       "DELETE_PIPELINE": "Delete pipeline",
-      "SAVE_STAGE": "Save"
+      "SAVE_STAGE": "Save",
+      "BLANK_PIPELINE": "Create blank pipeline",
+      "DESCRIPTION": "Customize the pipeline, its stages, colors, and probabilities."
+    },
+    "ACTIVITIES": {
+      "TITLE": "Activities",
+      "ADD": "New activity",
+      "OVERDUE": "Overdue",
+      "TODAY": "Today",
+      "PLANNED": "Planned",
+      "COMPLETED": "Completed",
+      "PLACEHOLDER": "E.g. Follow up with customer",
+      "EMPTY": "No activities recorded.",
+      "TYPES": {
+        "FOLLOWUP": "Follow-up",
+        "CALL": "Call",
+        "WHATSAPP": "WhatsApp",
+        "MEETING": "Meeting",
+        "TASK": "Task",
+        "EMAIL": "Email"
+      }
+    },
+    "HISTORY": {
+      "TITLE": "CRM history",
+      "EMPTY": "No events recorded.",
+      "SYSTEM": "System",
+      "DEAL_CREATED": "Opportunity created",
+      "DEAL_UPDATED": "Opportunity updated",
+      "STAGE_CHANGED": "Stage changed",
+      "STATUS_CHANGED": "Status changed",
+      "ASSIGNMENT_CHANGED": "Assignee changed",
+      "ACTIVITY_CREATED": "Activity created",
+      "ACTIVITY_UPDATED": "Activity updated",
+      "ACTIVITY_DELETED": "Activity removed"
     },
     "ERRORS": {
-      "CREATE_PIPELINE": "Could not create the pipeline",
-      "SAVE_DEAL": "Could not save the deal",
-      "MOVE_DEAL": "Could not move the deal",
-      "DELETE_STAGE": "Could not delete the stage"
+      "CREATE_PIPELINE": "Could not create pipeline",
+      "SAVE_DEAL": "Could not save opportunity",
+      "MOVE_DEAL": "Could not move opportunity",
+      "DELETE_STAGE": "Could not delete stage"
     },
     "CONTACT_SIDEBAR": {
-      "TITLE": "Deals",
-      "CREATE": "Create deal",
-      "EMPTY": "No deals for this contact",
-      "OPEN_BOARD": "Open pipelines"
+      "TITLE": "Opportunities",
+      "CREATE": "Create opportunity",
+      "EMPTY": "No opportunities for this contact",
+      "OPEN_BOARD": "Open pipelines",
+      "DEFAULT_TITLE": "Opportunity — contact {id}"
+    },
+    "DESCRIPTION": "Opportunity CRM integrated with Chatwoot contacts and conversations.",
+    "LOADING": "Loading CRM…",
+    "EMPTY_STAGES": "This pipeline has no stages yet. Open settings to add the first one.",
+    "EMPTY_CONTACT": "No linked contact",
+    "EMPTY_ASSIGNEE": "No assignee",
+    "NOT_AVAILABLE": "—",
+    "CONTACT_FALLBACK": "Contact {id}",
+    "TABLE": {
+      "OPPORTUNITY": "Opportunity",
+      "CONTACT": "Contact",
+      "STAGE": "Stage",
+      "VALUE": "Value",
+      "PROBABILITY": "Prob.",
+      "ASSIGNEE": "Assignee",
+      "CLOSE_DATE": "Close date",
+      "STATUS": "Status"
+    },
+    "PRIORITY": {
+      "NONE": "No priority",
+      "ONE": "★",
+      "TWO": "★★",
+      "THREE": "★★★"
+    },
+    "DETAIL": {
+      "ID": "CRM · {id}"
+    },
+    "MESSAGES": {
+      "DEAL_UPDATED": "Opportunity updated."
     }
   }
 }

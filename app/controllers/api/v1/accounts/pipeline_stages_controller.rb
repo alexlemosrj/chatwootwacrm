@@ -15,11 +15,23 @@ class Api::V1::Accounts::PipelineStagesController < Api::V1::Accounts::BaseContr
     @pipeline_stage.update!(stage_params)
   end
 
+  def reorder
+    result = Crm::ReorderPipelineStages.call(@pipeline, params.require(:stages))
+    unless result.success
+      render json: { error: result.error }, status: :unprocessable_entity
+      return
+    end
+
+    @pipeline_stages = @pipeline.pipeline_stages.reload
+    render :index
+  end
+
   def destroy
     if @pipeline_stage.deals.exists?
       render json: { error: 'Stage has deals; move or delete them first' }, status: :unprocessable_entity
       return
     end
+
     @pipeline_stage.destroy!
     head :ok
   end
@@ -35,7 +47,7 @@ class Api::V1::Accounts::PipelineStagesController < Api::V1::Accounts::BaseContr
   end
 
   def stage_params
-    params.require(:pipeline_stage).permit(:name, :position, :color)
+    params.require(:pipeline_stage).permit(:name, :position, :color, :default_probability, :is_won, :is_lost)
   end
 
   def check_authorization

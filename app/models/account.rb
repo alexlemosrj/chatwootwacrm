@@ -32,6 +32,7 @@ class Account < ApplicationRecord
   include CaptainFeaturable
   include AccountEmailRateLimitable
   include AccountSettingsSchema
+  include Crm::AccountExtensions
 
   DEFAULT_QUERY_SETTING = {
     flag_query_mode: :bit_operator,
@@ -87,8 +88,6 @@ class Account < ApplicationRecord
   has_many :hooks, dependent: :destroy_async, class_name: 'Integrations::Hook'
   has_many :inboxes, dependent: :destroy_async
   has_many :labels, dependent: :destroy_async
-  has_many :pipelines, dependent: :destroy_async
-  has_many :deals, dependent: :destroy_async
   has_many :line_channels, dependent: :destroy_async, class_name: '::Channel::Line'
   has_many :mentions, dependent: :destroy_async
   has_many :messages, dependent: :destroy_async
@@ -240,5 +239,6 @@ end
 
 Account.prepend_mod_with('Account')
 Account.prepend_mod_with('Account::PlanUsageAndLimits')
+Account.include_mod_with('AccountBillingIdentity')
 Account.include_mod_with('Concerns::Account')
 Account.include_mod_with('Audit::Account')

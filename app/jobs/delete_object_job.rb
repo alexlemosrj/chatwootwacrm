@@ -17,7 +17,7 @@ class DeleteObjectJob < ApplicationJob
 
   def heavy_associations
     {
-      Account => %i[conversations contacts inboxes reporting_events],
+      Account => %i[crm_events crm_activities deals pipelines conversations contacts inboxes reporting_events],
       Inbox => %i[conversations contact_inboxes reporting_events]
     }.freeze
   end

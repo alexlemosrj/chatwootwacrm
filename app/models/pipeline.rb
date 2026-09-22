@@ -1,27 +1,21 @@
 # frozen_string_literal: true
 
 class Pipeline < ApplicationRecord
+  DEFAULT_STAGES = [
+    { name: 'Novo Lead', color: '#94a3b8', position: 0, default_probability: 10 },
+    { name: 'Qualificado', color: '#3b82f6', position: 1, default_probability: 30 },
+    { name: 'Proposta', color: '#8b5cf6', position: 2, default_probability: 50 },
+    { name: 'Negociação', color: '#f59e0b', position: 3, default_probability: 70 },
+    { name: 'Ganho', color: '#22c55e', position: 4, default_probability: 100, is_won: true }
+  ].freeze
+
   belongs_to :account
-  has_many :pipeline_stages, -> { order(:position) }, dependent: :destroy, inverse_of: :pipeline
-  has_many :deals, dependent: :destroy
+  # Restrict first so a failed pipeline deletion cannot remove stages before
+  # Rails notices that opportunities still reference the pipeline.
+  has_many :deals, dependent: :restrict_with_error
+  has_many :pipeline_stages, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :pipeline
 
   validates :name, presence: true
 
-  DEFAULT_STAGES = [
-    { name: 'New Lead', color: '#94a3b8', position: 0 },
-    { name: 'Qualified', color: '#3b82f6', position: 1 },
-    { name: 'Proposal Sent', color: '#8b5cf6', position: 2 },
-    { name: 'Negotiation', color: '#f59e0b', position: 3 },
-    { name: 'Won', color: '#22c55e', position: 4 }
-  ].freeze
-
-  def self.ensure_default_for!(account)
-    return account.pipelines.first if account.pipelines.exists?
-
-    pipeline = account.pipelines.create!(name: 'Sales Pipeline')
-    DEFAULT_STAGES.each do |attrs|
-      pipeline.pipeline_stages.create!(attrs)
-    end
-    pipeline
-  end
+  scope :default_first, -> { order(is_default: :desc, id: :asc) }
 end

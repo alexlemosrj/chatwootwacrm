@@ -5,8 +5,6 @@ ___
 
 # Chatwoot
 
-> **chatwootwacrm fork:** this repository adds a native **Pipelines / Kanban** board (WACRM-style). See [README.chatwootwacrm.md](README.chatwootwacrm.md) and [docs/deploy-vps.md](docs/deploy-vps.md).
-
 The modern customer support platform, an open-source alternative to Intercom, Zendesk, Salesforce Service Cloud etc.
 
 <p>

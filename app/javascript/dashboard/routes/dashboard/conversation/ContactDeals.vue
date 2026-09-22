@@ -33,7 +33,7 @@ const load = async () => {
 
 watch(() => props.contactId, load, { immediate: true });
 
-const formatMoney = (value, currency = 'USD') => {
+const formatMoney = (value, currency = 'BRL') => {
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',
@@ -50,15 +50,15 @@ const createDeal = async () => {
   const pipeline = store.getters['pipelines/getSelectedPipeline'];
   if (!pipeline?.stages?.length) return;
   await store.dispatch('pipelines/createDeal', {
-    title: `Deal — contact #${props.contactId}`,
+    title: t('PIPELINES.CONTACT_SIDEBAR.DEFAULT_TITLE', {
+      id: props.contactId,
+    }),
     pipeline_id: pipeline.id,
     pipeline_stage_id: pipeline.stages[0].id,
     contact_id: Number(props.contactId),
-    conversation_id: props.conversationId
-      ? Number(props.conversationId)
-      : null,
+    conversation_id: props.conversationId ? Number(props.conversationId) : null,
     value: 0,
-    currency: 'USD',
+    currency: 'BRL',
     status: 'open',
   });
   await load();
@@ -76,7 +76,9 @@ const hasDeals = computed(() => deals.value.length > 0);
 
 <template>
   <div class="flex flex-col gap-2 px-1 py-2">
-    <div v-if="loading" class="text-xs text-n-slate-11">…</div>
+    <div v-if="loading" class="text-xs text-n-slate-11">
+      {{ t('PIPELINES.LOADING') }}
+    </div>
     <div v-else-if="!hasDeals" class="text-xs text-n-slate-11">
       {{ t('PIPELINES.CONTACT_SIDEBAR.EMPTY') }}
     </div>
@@ -89,7 +91,8 @@ const hasDeals = computed(() => deals.value.length > 0);
     >
       <div class="font-medium">{{ deal.title }}</div>
       <div class="text-n-slate-11">
-        {{ formatMoney(deal.value, deal.currency) }} · {{ deal.status }}
+        {{ formatMoney(deal.value, deal.currency) }} ·
+        {{ t(`PIPELINES.STATUS.${deal.status.toUpperCase()}`) }}
       </div>
     </button>
     <div class="flex gap-2">

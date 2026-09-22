@@ -1,21 +1,14 @@
 class PipelineStagePolicy < ApplicationPolicy
-  def index?
-    @account_user.administrator? || @account_user.agent?
-  end
+  def index? = account_member?
+  def show? = account_member?
+  def create? = account_member?
+  def update? = account_member?
+  def reorder? = account_member?
+  def destroy? = account_member?
 
-  def show?
-    index?
-  end
+  private
 
-  def create?
-    @account_user.administrator?
-  end
-
-  def update?
-    @account_user.administrator?
-  end
-
-  def destroy?
-    @account_user.administrator?
+  def account_member?
+    @account_user&.administrator? || @account_user&.agent?
   end
 end

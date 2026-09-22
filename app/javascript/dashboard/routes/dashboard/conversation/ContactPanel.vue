@@ -15,10 +15,10 @@ import ConversationAction from './ConversationAction.vue';
 import ConversationParticipant from './ConversationParticipant.vue';
 import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
+import ContactDeals from './ContactDeals.vue';
 import ConversationInfo from './ConversationInfo.vue';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
 import SharedFiles from './SharedFiles.vue';
-import ContactDeals from './ContactDeals.vue';
 import Draggable from 'vuedraggable';
 import MacrosList from './Macros/List.vue';
 import ShopifyOrdersList from 'dashboard/components/widgets/conversation/ShopifyOrdersList.vue';
@@ -42,6 +42,7 @@ const {
   isContactSidebarItemOpen,
   conversationSidebarItemsOrder,
   toggleSidebarUIState,
+  isOnExpandedLayout,
 } = useUISettings();
 
 const dragging = ref(false);
@@ -95,6 +96,14 @@ const contactId = computed(() => currentChat.value.meta?.sender?.id);
 const contact = computed(() => contactGetter.value(contactId.value));
 const contactAdditionalAttributes = computed(
   () => contact.value.additional_attributes || {}
+);
+
+const appliedContactFilter = useMapGetter('getAppliedContactFilter');
+
+const isListScopedToContact = computed(
+  () =>
+    !isOnExpandedLayout.value &&
+    appliedContactFilter.value?.id === contactId.value
 );
 
 const getContactDetails = () => {
@@ -237,7 +246,11 @@ onMounted(() => {
               />
             </AccordionItem>
           </div>
-          <div v-else-if="element.name === 'previous_conversation'">
+          <div
+            v-else-if="
+              element.name === 'previous_conversation' && !isListScopedToContact
+            "
+          >
             <AccordionItem
               v-if="contact.id"
               :title="

@@ -1,0 +1,14 @@
+json.id resource.id
+json.account_id resource.account_id
+json.deal_id resource.deal_id
+json.contact_id resource.contact_id
+json.assignee_id resource.assignee_id
+json.activity_type resource.activity_type
+json.title resource.title
+json.start_at resource.start_at
+json.due_at resource.due_at
+json.completed_at resource.completed_at
+json.status resource.status
+json.notes resource.notes
+json.created_at resource.created_at.to_i
+json.updated_at resource.updated_at.to_i
