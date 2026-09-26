@@ -242,7 +242,7 @@ onMounted(() => {
             >
               <ContactDeals
                 :contact-id="contact.id"
-                :conversation-id="conversationId"
+                :conversation-display-id="conversationId"
               />
             </AccordionItem>
           </div>

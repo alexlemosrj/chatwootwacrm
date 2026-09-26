@@ -1,4 +1,8 @@
 class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
+  rescue_from ActiveRecord::InvalidForeignKey do
+    render_could_not_create_error(I18n.t('crm.invalid_reference'))
+  end
+
   before_action :fetch_deal, only: [:show, :update, :destroy]
   before_action :check_authorization
 
@@ -46,12 +50,37 @@ class Api::V1::Accounts::DealsController < Api::V1::Accounts::BaseController
   end
 
   def deal_params
-    params.require(:deal).permit(
+    attributes = params.require(:deal)
+    conversation_attributes = resolve_conversation_reference(attributes)
+    attributes.permit(
       :title, :value, :currency, :expected_revenue, :probability, :priority_stars,
       :expected_close_date, :status, :notes, :campaign_source,
-      :pipeline_id, :pipeline_stage_id, :contact_id, :conversation_id, :assignee_id,
+      :pipeline_id, :pipeline_stage_id, :contact_id, :assignee_id,
       utm_data: {}, custom_attributes: {}
-    )
+    ).merge(conversation_attributes)
+  end
+
+  def resolve_conversation_reference(attributes)
+    keys = %w[conversation_id conversation_display_id].select { |key| attributes.key?(key) }
+    return {} if keys.empty?
+
+    raise ActionController::ParameterMissing, 'use only one conversation identifier' if keys.size > 1
+
+    key = keys.first
+    value = attributes[key]
+    return { conversation: nil } if value.nil?
+
+    { conversation: find_account_conversation!(key, value) }
+  end
+
+  def find_account_conversation!(key, value)
+    raise ActionController::ParameterMissing, "#{key} must be a positive integer or null" unless value.is_a?(Integer) && value.positive?
+
+    column = key == 'conversation_id' ? :id : :display_id
+    conversation = Current.account.conversations.find_by(column => value)
+    raise ActionController::ParameterMissing, "#{key} must identify a conversation in this account" unless conversation
+
+    conversation
   end
 
   def apply_stage_defaults!(attributes)

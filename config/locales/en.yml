@@ -596,6 +596,8 @@ en:
   automation:
     system_name: 'Automation System'
   crm:
+    contact_has_history: "This contact has CRM history and cannot be deleted. Merge it with another contact to preserve its history."
+    invalid_reference: "A linked CRM record no longer exists. Refresh and try again."
     no_message: 'No messages in conversation'
     attachment: '[Attachment: %{type}]'
     no_content: '[No content]'

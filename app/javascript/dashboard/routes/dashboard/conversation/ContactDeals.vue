@@ -7,7 +7,7 @@ import { useAccount } from 'dashboard/composables/useAccount';
 
 const props = defineProps({
   contactId: { type: [Number, String], required: true },
-  conversationId: { type: [Number, String], default: null },
+  conversationDisplayId: { type: [Number, String], default: null },
 });
 
 const { t } = useI18n();
@@ -56,7 +56,9 @@ const createDeal = async () => {
     pipeline_id: pipeline.id,
     pipeline_stage_id: pipeline.stages[0].id,
     contact_id: Number(props.contactId),
-    conversation_id: props.conversationId ? Number(props.conversationId) : null,
+    conversation_display_id: props.conversationDisplayId
+      ? Number(props.conversationDisplayId)
+      : null,
     value: 0,
     currency: 'BRL',
     status: 'open',

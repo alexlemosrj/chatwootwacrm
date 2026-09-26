@@ -88,6 +88,9 @@ class User < ApplicationRecord
   has_many :accounts, through: :account_users
   accepts_nested_attributes_for :account_users
 
+  has_many :assigned_deals, class_name: 'Deal', foreign_key: 'assignee_id', dependent: :nullify, inverse_of: :assignee
+  has_many :assigned_crm_activities, class_name: 'CrmActivity', foreign_key: 'assignee_id', dependent: :nullify, inverse_of: :assignee
+  has_many :authored_crm_events, class_name: 'CrmEvent', foreign_key: 'actor_id', dependent: :nullify, inverse_of: :actor
   has_many :assigned_conversations, foreign_key: 'assignee_id', class_name: 'Conversation', dependent: :nullify, inverse_of: :assignee
   alias conversations assigned_conversations
   has_many :csat_survey_responses, foreign_key: 'assigned_agent_id', dependent: :nullify, inverse_of: :assigned_agent

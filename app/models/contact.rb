@@ -46,6 +46,7 @@ class Contact < ApplicationRecord
   include AvailabilityStatusable
   include Labelable
   include LlmFormattable
+  include Crm::ContactExtensions
 
   validates :account_id, presence: true
   validates :email, allow_blank: true, uniqueness: { scope: [:account_id], case_sensitive: false },
@@ -246,8 +247,7 @@ class Contact < ApplicationRecord
     # Pass serialized data instead of ActiveRecord object to avoid DeserializationError
     # when the async EventDispatcherJob runs after the contact has been deleted
     Rails.configuration.dispatcher.dispatch(
-      CONTACT_DELETED,
-      Time.zone.now,
+      CONTACT_DELETED, Time.zone.now,
       contact_data: push_event_data.merge(account_id: account_id)
     )
   end

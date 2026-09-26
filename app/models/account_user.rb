@@ -37,7 +37,7 @@ class AccountUser < ApplicationRecord
   accepts_nested_attributes_for :account
 
   after_create_commit :notify_creation, :create_notification_setting
-  after_destroy :notify_deletion, :remove_user_from_account
+  after_destroy :clear_crm_assignments, :notify_deletion, :remove_user_from_account
   after_save :update_presence_in_redis, if: :saved_change_to_availability?
   after_commit :invalidate_filtered_unread_count_visibility, on: [:create, :destroy]
   after_update_commit :invalidate_filtered_unread_count_visibility_update, if: :filtered_unread_count_visibility_changed?
@@ -69,6 +69,13 @@ class AccountUser < ApplicationRecord
   end
 
   private
+
+  def clear_crm_assignments
+    [Deal, CrmActivity].each do |model|
+      model.where(account_id: account_id, assignee_id: user_id)
+           .update_all(assignee_id: nil) # rubocop:disable Rails/SkipsModelValidations
+    end
+  end
 
   def notify_creation
     Rails.configuration.dispatcher.dispatch(AGENT_ADDED, Time.zone.now, account: account)
