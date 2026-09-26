@@ -75,6 +75,8 @@ jobs:
   # Backend tests with parallelization
   backend-tests:
     runs-on: ubuntu-latest
+    env:
+      RAILS_ENV: test
     strategy:
       fail-fast: false
       matrix:
@@ -130,10 +132,12 @@ jobs:
       - name: Create database
         run: bundle exec rake db:create
 
-      - name: Seed database
+      - name: Prepare test database
         run: |
           bundle exec rake db:schema:load
-          bundle exec rails db:migrate RAILS_ENV=test
+          bundle exec rails db:migrate
+          # Migrations load installation defaults; specs need an empty test database.
+          bundle exec rails db:test:prepare
 
       - name: Run backend tests (parallelized)
         run: |
