@@ -1102,6 +1102,10 @@ RSpec.describe Conversation do
     let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact, assignee: agent, waiting_since: nil) }
     let(:conversation_start_time) { 5.hours.ago }
 
+    around do |example|
+      freeze_time { example.run }
+    end
+
     before do
       create(:inbox_member, user: agent, inbox: inbox)
       # rubocop:disable Rails/SkipsModelValidations
