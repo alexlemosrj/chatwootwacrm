@@ -593,7 +593,7 @@ const contactOptionLabel = contact =>
               v-for="deal in dealsForStage(stage.id)"
               :key="deal.id"
               draggable="true"
-              class="block w-full rounded-lg border border-n-weak bg-n-solid-1 p-3 text-left shadow-sm transition hover:border-n-brand hover:shadow"
+              class="block w-full rounded-lg border border-n-weak bg-n-solid-1 p-3 text-left shadow-sm transition hover:border-n-brand hover:shadow dark:border-n-slate-6 dark:bg-n-slate-4 dark:hover:border-n-slate-7 dark:hover:bg-n-slate-5"
               @dragstart="onDragStart(deal.id)"
               @click="openDeal(deal)"
             >
