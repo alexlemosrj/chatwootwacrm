@@ -58,7 +58,7 @@ class Crm::CreateAutoLead
     pipeline = account.pipelines.find_by!(is_default: true)
     stage = pipeline.pipeline_stages.first!
     deal = account.deals.create!(
-      conversation: conversation, contact: contact, pipeline: pipeline, pipeline_stage: stage,
+      crm_creation_source: :auto_lead, conversation: conversation, contact: contact, pipeline: pipeline, pipeline_stage: stage,
       title: I18n.t('crm.auto_lead_title', name: contact.name),
       probability: stage.default_probability, status: stage_status(stage)
     )

@@ -66,11 +66,17 @@ does not itself trigger conversion; another incoming message can trigger evaluat
 
 ## Concurrency and scope
 
-Deal creation/link changes also take the conversation lock, so the automatic service
-respects manual deals committed before it obtains the lock. An existing linked deal
-consumes the journey without rewriting that deal or its audit. The existing ability
-to intentionally create multiple manual deals is preserved; this is not a global
-unique constraint on all deals for a conversation.
+Manual deal creation/link changes take the same conversation lock and consume an
+eligible journey immediately, in the transaction that saves the deal. Failed saves
+or transaction rollbacks leave the journey unchanged. Removing or unlinking the
+deal cannot restore eligibility. Ineligible and closed journeys remain unchanged.
+
+A new manual link to a processed journey returns a validation error (HTTP 422),
+including when the automatic job wins the lock first. Existing deals can still be
+edited. Thus either winner of a manual/automatic race leaves exactly one deal.
+The service explicitly marks its deal instance with the internal creation source
+`auto_lead` (not accepted by the API); it owns the atomic deal/event/state write.
+There is no global or thread-local callback bypass.
 
 The state is internal, not a custom/additional attribute permitted by the API.
 Direct SQL/bulk writes that bypass model callbacks must preserve lifecycle invariants;

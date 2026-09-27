@@ -3,6 +3,8 @@
 class Deal < ApplicationRecord
   STATUSES = %w[open won lost].freeze
 
+  attr_accessor :crm_creation_source
+
   belongs_to :account
   belongs_to :pipeline
   belongs_to :pipeline_stage
@@ -32,8 +34,20 @@ class Deal < ApplicationRecord
 
   private
 
-  def serialize_conversation_link(&)
-    account.conversations.find(conversation_id).with_lock(&)
+  def serialize_conversation_link
+    linked_conversation = account.conversations.find(conversation_id)
+    linked_conversation.with_lock do
+      if crm_creation_source != :auto_lead && linked_conversation.crm_auto_lead_processed?
+        errors.add(:conversation, I18n.t('crm.auto_lead_journey_consumed'))
+        raise ActiveRecord::RecordInvalid, self
+      end
+
+      saved = yield
+      if saved && crm_creation_source != :auto_lead && linked_conversation.crm_auto_lead_eligible?
+        linked_conversation.update!(crm_auto_lead_state: :processed)
+      end
+      saved
+    end
   end
 
   def pipeline_belongs_to_account
