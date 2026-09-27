@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_09_26_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_09_27_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -888,6 +888,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_26_120000) do
     t.bigint "assignee_agent_bot_id"
     t.string "ai_assignee_type"
     t.datetime "status_changed_at"
+    t.integer "crm_auto_lead_state", default: 0, null: false
     t.index ["account_id", "display_id"], name: "index_conversations_on_account_id_and_display_id", unique: true
     t.index ["account_id", "id"], name: "index_conversations_on_id_and_account_id"
     t.index ["account_id", "inbox_id", "status", "assignee_id"], name: "conv_acid_inbid_stat_asgnid_idx"
@@ -907,6 +908,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_26_120000) do
     t.index ["team_id"], name: "index_conversations_on_team_id"
     t.index ["uuid"], name: "index_conversations_on_uuid", unique: true
     t.index ["waiting_since"], name: "index_conversations_on_waiting_since"
+    t.check_constraint "crm_auto_lead_state = ANY (ARRAY[0, 1, 2, 3])", name: "conversations_crm_auto_lead_state_values"
   end
 
   create_table "copilot_messages", force: :cascade do |t|

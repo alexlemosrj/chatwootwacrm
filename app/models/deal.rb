@@ -28,7 +28,13 @@ class Deal < ApplicationRecord
 
   scope :open_status, -> { where(status: 'open') }
 
+  around_save :serialize_conversation_link, if: -> { conversation_id.present? && will_save_change_to_conversation_id? }
+
   private
+
+  def serialize_conversation_link(&)
+    account.conversations.find(conversation_id).with_lock(&)
+  end
 
   def pipeline_belongs_to_account
     return if pipeline.blank? || account.blank? || pipeline.account_id == account_id

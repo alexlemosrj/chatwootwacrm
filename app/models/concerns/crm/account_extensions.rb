@@ -9,6 +9,8 @@ module Crm::AccountExtensions
     has_many :deals, dependent: :destroy
     has_many :pipelines, dependent: :destroy
 
+    store_accessor :settings, :crm_auto_lead_enabled
+
     after_create_commit :provision_crm
   end
 
