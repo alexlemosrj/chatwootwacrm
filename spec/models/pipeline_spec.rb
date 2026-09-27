@@ -1,37 +1,29 @@
 require 'rails_helper'
 
-RSpec.describe Pipeline, type: :model do
-  describe '.ensure_default_for!' do
-    let(:account) { create(:account) }
-
-    it 'creates a sales pipeline with five stages when none exist' do
-      pipeline = described_class.ensure_default_for!(account)
-
-      expect(account.pipelines.count).to eq(1)
-      expect(pipeline.name).to eq('Sales Pipeline')
-      expect(pipeline.pipeline_stages.count).to eq(5)
-    end
-
-    it 'does not duplicate when a pipeline already exists' do
-      existing = create(:pipeline, account: account)
-      expect(described_class.ensure_default_for!(account)).to eq(existing)
-      expect(account.pipelines.count).to eq(1)
-    end
-  end
-end
-
-RSpec.describe Deal, type: :model do
-  it 'syncs pipeline_id from stage' do
+RSpec.describe Pipeline do
+  it 'belongs to an account and owns ordered stages' do
     account = create(:account)
-    pipeline = create(:pipeline, account: account)
-    stage = create(:pipeline_stage, pipeline: pipeline)
-    deal = create(:deal, account: account, pipeline_stage: stage, pipeline: pipeline)
+    pipeline = account.pipelines.find_by!(is_default: true)
 
-    expect(deal.pipeline_id).to eq(pipeline.id)
+    expect(pipeline.account).to eq(account)
+    expect(pipeline.pipeline_stages.pluck(:position)).to eq([0, 1, 2, 3, 4])
   end
 
-  it 'rejects invalid status' do
-    deal = build(:deal, status: 'active')
-    expect(deal).not_to be_valid
+  it 'does not allow destroying a pipeline that still has deals' do
+    account = create(:account)
+    pipeline = account.pipelines.find_by!(is_default: true)
+
+    Deal.create!(
+      account: account,
+      pipeline: pipeline,
+      pipeline_stage: pipeline.pipeline_stages.first,
+      title: 'Negócio ativo'
+    )
+
+    stage_ids = pipeline.pipeline_stages.pluck(:id)
+
+    expect(pipeline.destroy).to be(false)
+    expect(pipeline.errors[:base]).to be_present
+    expect(PipelineStage.where(id: stage_ids).count).to eq(stage_ids.length)
   end
 end

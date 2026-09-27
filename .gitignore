@@ -29,8 +29,6 @@ master.key
 
 # Ignore env files
 .env
-.env.local
-.env.*.local
 
 public/uploads
 public/packs*
@@ -106,3 +104,4 @@ CLAUDE.local.md
 .pnpm-store/*
 local/
 Procfile.worktree
+.nodeterm/project.json

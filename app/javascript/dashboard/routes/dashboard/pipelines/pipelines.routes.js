@@ -2,7 +2,7 @@ import { frontendURL } from '../../../helper/URLHelper';
 import PipelinesIndex from './pages/PipelinesIndex.vue';
 
 const meta = {
-  permissions: ['administrator', 'agent'],
+  permissions: ['administrator', 'agent', 'custom_role'],
 };
 
 export const routes = [

@@ -107,6 +107,8 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
 
     @contact.destroy!
     head :ok
+  rescue ActiveRecord::RecordNotDestroyed, ActiveRecord::InvalidForeignKey
+    render_could_not_create_error(I18n.t('crm.contact_has_history'))
   end
 
   def avatar

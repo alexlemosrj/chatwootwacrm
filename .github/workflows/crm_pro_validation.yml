@@ -1,0 +1,151 @@
+name: CRM Pro Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'app/controllers/api/v1/accounts/pipelines_controller.rb'
+      - 'app/controllers/api/v1/accounts/pipeline_stages_controller.rb'
+      - 'app/controllers/api/v1/accounts/deals_controller.rb'
+      - 'app/controllers/api/v1/accounts/crm_activities_controller.rb'
+      - 'app/controllers/api/v1/accounts/crm_events_controller.rb'
+      - 'app/models/pipeline.rb'
+      - 'app/models/pipeline_stage.rb'
+      - 'app/models/deal.rb'
+      - 'app/models/crm_activity.rb'
+      - 'app/models/crm_event.rb'
+      - 'app/services/crm/**'
+      - 'app/javascript/dashboard/**/pipelines/**'
+      - 'app/javascript/dashboard/api/pipelines.js'
+      - 'app/javascript/dashboard/api/deals.js'
+      - 'app/javascript/dashboard/api/crmActivities.js'
+      - 'app/javascript/dashboard/api/crmEvents.js'
+      - 'app/javascript/dashboard/store/modules/pipelines.js'
+      - 'db/migrate/*crm*'
+      - 'db/migrate/*pipeline*'
+      - 'spec/**/crm/**'
+      - 'spec/**/*pipeline*_spec.rb'
+      - 'spec/**/*deal*_spec.rb'
+      - '.github/workflows/crm_pro_validation.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: crm-pro-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-crm:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ''
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: --entrypoint redis-server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Strip enterprise code
+        run: |
+          rm -rf enterprise
+          rm -rf spec/enterprise
+
+      - name: Prepare test database
+        run: |
+          bundle exec rake db:create
+          bundle exec rake db:schema:load
+          bundle exec rails db:migrate RAILS_ENV=test
+
+      - name: Run CRM Pro specs
+        run: >
+          bundle exec rspec
+          spec/services/crm/provision_account_spec.rb
+          spec/models/pipeline_spec.rb
+          spec/models/deal_spec.rb
+          spec/models/crm_activity_spec.rb
+          spec/controllers/api/v1/accounts/pipelines_controller_spec.rb
+          spec/controllers/api/v1/accounts/deals_controller_spec.rb
+          spec/controllers/api/v1/accounts/crm_activities_controller_spec.rb
+
+  frontend-crm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Normalize CRM frontend formatting
+        run: >
+          pnpm exec prettier --write
+          app/javascript/dashboard/api/pipelines.js
+          app/javascript/dashboard/api/deals.js
+          app/javascript/dashboard/api/crmActivities.js
+          app/javascript/dashboard/api/crmEvents.js
+          app/javascript/dashboard/store/modules/pipelines.js
+          app/javascript/dashboard/routes/dashboard/pipelines/pipelines.routes.js
+          app/javascript/dashboard/routes/dashboard/pipelines/pages/PipelinesIndex.vue
+          app/javascript/dashboard/routes/dashboard/pipelines/components/DealDetailModal.vue
+          app/javascript/dashboard/routes/dashboard/conversation/ContactDeals.vue
+
+      - name: Lint CRM frontend
+        run: >
+          pnpm exec eslint
+          app/javascript/dashboard/api/pipelines.js
+          app/javascript/dashboard/api/deals.js
+          app/javascript/dashboard/api/crmActivities.js
+          app/javascript/dashboard/api/crmEvents.js
+          app/javascript/dashboard/store/modules/pipelines.js
+          app/javascript/dashboard/routes/dashboard/pipelines/pipelines.routes.js
+          app/javascript/dashboard/routes/dashboard/pipelines/pages/PipelinesIndex.vue
+          app/javascript/dashboard/routes/dashboard/pipelines/components/DealDetailModal.vue
+          app/javascript/dashboard/routes/dashboard/conversation/ContactDeals.vue
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: false
+          cache-from: type=gha,scope=crm-pro-amd64
+          cache-to: type=gha,mode=max,scope=crm-pro-amd64

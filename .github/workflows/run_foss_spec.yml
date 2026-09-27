@@ -9,6 +9,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: foss-spec-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Separate linting jobs for faster feedback
   lint-backend:
@@ -71,6 +75,8 @@ jobs:
   # Backend tests with parallelization
   backend-tests:
     runs-on: ubuntu-latest
+    env:
+      RAILS_ENV: test
     strategy:
       fail-fast: false
       matrix:
@@ -126,8 +132,12 @@ jobs:
       - name: Create database
         run: bundle exec rake db:create
 
-      - name: Seed database
-        run: bundle exec rake db:schema:load
+      - name: Prepare test database
+        run: |
+          bundle exec rake db:schema:load
+          bundle exec rails db:migrate
+          # Migrations load installation defaults; specs need an empty test database.
+          bundle exec rails db:test:prepare
 
       - name: Run backend tests (parallelized)
         run: |

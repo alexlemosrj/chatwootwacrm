@@ -13,6 +13,8 @@ class ContactMergeAction
       merge_messages
       merge_contact_inboxes
       merge_contact_notes
+      merge_calls
+      merge_crm_records
       merge_and_remove_mergee_contact
     end
     @base_contact
@@ -46,6 +48,19 @@ class ContactMergeAction
     ContactInbox.where(contact_id: @mergee_contact.id).update(contact_id: @base_contact.id)
   end
 
+  def merge_crm_records
+    # Keep the historical payload and timestamps; only the contact reference changes.
+    # Both contacts are account-validated above, and any failure rolls back the merge.
+    [Deal, CrmActivity, CrmEvent].each do |model|
+      model.where(account_id: @account.id, contact_id: @mergee_contact.id)
+           .update_all(contact_id: @base_contact.id) # rubocop:disable Rails/SkipsModelValidations
+    end
+  end
+
+  def merge_calls
+    # overridden in enterprise/app/actions/enterprise/contact_merge_action.rb
+  end
+
   def merge_and_remove_mergee_contact
     mergable_attribute_keys = %w[identifier name email phone_number additional_attributes custom_attributes]
     base_contact_attributes = base_contact.attributes.slice(*mergable_attribute_keys).compact_blank
@@ -60,3 +75,5 @@ class ContactMergeAction
     @base_contact.update!(merged_attributes)
   end
 end
+
+ContactMergeAction.prepend_mod_with('ContactMergeAction')

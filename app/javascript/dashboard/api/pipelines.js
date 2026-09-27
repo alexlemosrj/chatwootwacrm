@@ -22,6 +22,12 @@ class PipelinesAPI extends ApiClient {
     });
   }
 
+  reorderStages(pipelineId, stages) {
+    return axios.patch(`${this.url}/${pipelineId}/pipeline_stages/reorder`, {
+      stages,
+    });
+  }
+
   deleteStage(pipelineId, stageId) {
     return axios.delete(`${this.url}/${pipelineId}/pipeline_stages/${stageId}`);
   }
